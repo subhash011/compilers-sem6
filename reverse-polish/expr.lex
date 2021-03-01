@@ -64,7 +64,9 @@ digit = [0-9]+;
 		   in updateLine (newlineCount yytext); Tokens.NEWLINE (old, !lineRef)
 		   end
 		 );
+"("           => ( Tokens.LPAREN (!lineRef,!lineRef) );
 {digit}+      => ( Tokens.CONST (toInt yytext, !lineRef, !lineRef) );
+")"           => ( Tokens.RPAREN (!lineRef,!lineRef) );
 "+"           => ( Tokens.PLUS  (!lineRef,!lineRef) );
 "-"           => ( Tokens.MINUS  (!lineRef,!lineRef) );
 "*"           => ( Tokens.MUL (!lineRef,!lineRef) );

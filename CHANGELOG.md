@@ -1,4 +1,20 @@
 # Changelog
 
+## Week - 1
 19-02-2021
 - Added Makefile, .gitignore, src folder and a basic Hello World example.
+
+## Week - 2
+### 26-02-2021
+- Added Division operator to the reverse polish compiler
+- In this revision, the division has been given the highest preference compared to other operators.
+- ast.sml has been modified to make Div as a BinOp
+- DIV added to terminals, operator associativity and the rule EXP
+- expr.lex has been modified to define what token represents DIV ("/")
+- rp.lex modified to execute the division operation on seeing the operator.
+### 01-03-2021
+- Added parenthesis to evaluate expression
+- expr.lex has been modified to define what tokens represent left (LPAREN) and right (RPAREN) parenthesis
+- LPAREN and RPAREN added to the list of terminals in expr.grm
+- New expression case with parenthesis added to the rule EXP
+- modified test.expr to test new additions to the compiler.
