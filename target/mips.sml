@@ -143,9 +143,26 @@ struct
                             | Set_Lt_I_U of {dest: 't, src1: 't, imm: Immediate}
                             | Set_Ne of {dest: 't, src1: 't, src2: 't}
 
-    and ('l, 't) ExceptionTrap = RetFromException
+    and ExceptionTrap = RetFromException
                             | Syscall
                             | Break
                             | NoOp
+
+    (* For the tiger language to have syscall for print statements, some of these assembler
+    directives are needed. Some of these might not be a necessity in the final functionality but it
+    has been implemented for the time being. *)
+    and AssemblerDirectives = Align of int
+                            | Ascii of string
+                            | Asciiz of string
+                            | Byte of int list
+                            | Data
+                            | Extern of {sym: int, size: int}
+                            | Global of int
+                            | Half of int list
+                            | KData
+                            | KText
+                            | Space of int
+                            | Text
+                            | Word of int list
 
 end
