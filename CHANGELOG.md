@@ -1,7 +1,7 @@
 # Changelog
 
 ## Week - 1
-19-02-2021
+### 19-02-2021
 - Added Makefile, .gitignore, src folder and a basic Hello World example.
 
 ## Week - 2
@@ -18,3 +18,9 @@
 - LPAREN and RPAREN added to the list of terminals in expr.grm
 - New expression case with parenthesis added to the rule EXP
 - modified test.expr to test new additions to the compiler.
+
+## Week - 3
+### 08-03-2021
+- Added ASTs of source language Tiger and target language MIPS (SPIM).
+- target/mips.sml contains the ast of mips.
+- tiger/ast.sml contains the ast of tiger along with an example to derive the AST for a section of code in tiger language.
