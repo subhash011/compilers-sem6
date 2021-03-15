@@ -1,2 +1,8 @@
 # vscode
 tc
+**/*.lex.sml
+**/*.grm.sml
+**/*.grm.desc
+**/*.grm.sig
+tiger/tiger
+*.out

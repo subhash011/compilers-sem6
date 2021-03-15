@@ -51,19 +51,22 @@ struct
             | Or
 
     and Dec = TypeDec of {id: id, type_: Type}
-            | ClassDec of {id: id, extends: TypeId option, classfields: ClassField list}
-            | VarDec of {id: id, type_: TypeId option, init: Exp}
-            | FunDec of {id: id, args: TyFields, ret: TypeId option, body: Exp}
-            | PrimitiveDec of {id: id, args: TyFields, ret: TypeId option, body: Exp}
+            | ClassDec of {id: id, extends: TypeId option, classfields: ClassFields}
+            | VarDec of VarDecType
+            | FunDec of FunDecType
+            | PrimitiveDec of FunDecType
 
-    and ClassField = AttrDec of {id: id, type_: TypeId option, init: Exp}
-            | MethodDec of {id: id, args: TyFields, ret: TypeId option, body: Exp}
-            | ClassFields of ClassField list
+    and ClassField = AttrDec of VarDecType
+            | MethodDec of FunDecType
 
-    and Type = TypeId of id
+    and Type = TypeAlias of TypeId
             | RecordType of TyFields
             | ArrayType of TypeId
-            | ClassType of {extends: TypeId option, classfields: ClassField list}
+            | ClassType of {extends: TypeId option, classfields: ClassFields}
+
+    withtype ClassFields = ClassField list
+    and VarDecType = {id: id, type_: TypeId option, init: Exp}
+    and FunDecType = {id: id, args: TyFields, ret: TypeId option, body: Exp}
 end
 
 (*
