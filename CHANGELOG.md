@@ -24,3 +24,14 @@
 - Added ASTs of source language Tiger and target language MIPS (SPIM).
 - target/mips.sml contains the ast of mips.
 - tiger/ast.sml contains the ast of tiger along with an example to derive the AST for a section of code in tiger language.
+
+## Week - 4
+### 16-03-2021
+- Completed parser for tiger language, all source files reside in the "tiger/" directory
+- added printast.sml to print the abstract syntax tree obtained from the parser.
+- tiger.lex contains the lexer.
+- tiger.grm contains the grammar.
+- symbol.sml is created to store all the variables that will be encountered during compilation.
+- tiger.mlb puts together are the files for compiling with mlton.
+- tests/ directory contains all the testcases from the implementation of the appel book.
+- removed src directory created in the first lab since it was causing confusions.

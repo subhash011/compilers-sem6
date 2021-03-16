@@ -1,0 +1,9 @@
+/* /*
+nested comments
+*/ */
+let
+    var a := arr [10] of 1
+    var b := "A string"
+in
+    1 + 2
+end

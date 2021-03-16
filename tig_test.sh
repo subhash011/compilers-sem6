@@ -2,7 +2,7 @@
 
 test_dir=$1
 test_out=$3
-tigs=$(find $test_dir -type f -name *.tig)
+tigs=$(find $test_dir -type f -not -name custom.tig)
 rm -f $test_out
 $(echo "Test Directory: ${test_dir}" >> $test_out)
 $(echo "" >> $test_out)

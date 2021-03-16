@@ -12,7 +12,7 @@ val stringVal: string ref = ref "";
 fun inc_ref ref_ n = ref_ := !ref_ + n
 fun dec_ref ref_ n = ref_ := !ref_ - n
 
-fun err(p1,p2) = ErrorMsg.error p1;
+fun err pos msg = ErrorMsg.error pos msg;
 
 fun eof() = let
                 val pos = hd(!linePos)
@@ -85,4 +85,4 @@ strings = "\""(\\.|[^\\"])*"\"";
 <INITIAL> {digits} => (Tokens.INT(valOf (Int.fromString yytext), yypos, yypos + size yytext));
 <INITIAL> {alpha}({alpha}|{digits}|"_")* => (Tokens.ID (Symbol.symbol yytext, yypos, yypos + size(yytext)));
 <INITIAL> {strings} => (Tokens.STRING(String.substring(yytext, 1, String.size(yytext) - 2), yypos, yypos + size(yytext)));
-. => (ErrorMsg.error yypos ("Illegal character '" ^ yytext ^ "' found"); lex());
+. => (err yypos ("Illegal character '" ^ yytext ^ "' found"); lex());

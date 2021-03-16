@@ -89,7 +89,7 @@ fun x _ = 1;
         | Assignment    of {object: Tiger.Lvalue, exp: Tiger.Exp}
         | IfElse        of {cond: Tiger.Exp, succ: Tiger.Exp, fail: Tiger.Exp option}
         | While         of {cond: Tiger.Exp, body: Tiger.Exp}
-        | For           of {init: {var: Tiger.id, exp: Tiger.Exp}, exit_cond: Tiger.Exp, body: Tiger.Exp}
+        | For           of {init: {name: Tiger.id, exp: Tiger.Exp}, exit_cond: Tiger.Exp, body: Tiger.Exp}
         | Let           of {decs: Tiger.Dec list, body: Tiger.Exp list}
         | Variable      of Tiger.id
         | Type          of Tiger.Type
@@ -177,7 +177,7 @@ IfElse: IF Exp THEN Exp                                                 ({cond =
 
 While: WHILE Exp DO Exp                                                 ({cond = Exp1, body = Exp2})
 
-For: FOR ID ASSIGN Exp TO Exp DO Exp                                    ({init = {var = ID, exp = Exp1}, exit_cond = Exp2, body = Exp3})
+For: FOR ID ASSIGN Exp TO Exp DO Exp                                    ({init = {name = ID, exp = Exp1}, exit_cond = Exp2, body = Exp3})
 
 Let: LET Decs IN Exps END                                               ({decs = Decs, body = Exps})
 
@@ -200,7 +200,7 @@ RecordField: ID EQ Exp                                                  ({name =
 LvalExp: ID                                                             (Tiger.Variable ID)
     | LvalTail                                                          (LvalTail)
 
-LvalTail: LvalExp DOT ID                                                (Tiger.Reference {object = LvalExp, var = ID})
+LvalTail: LvalExp DOT ID                                                (Tiger.Reference {object = LvalExp, name = ID})
         | ID LSQUARE Exp RSQUARE                                        (Tiger.ArrayAccess {object = Tiger.Variable ID, index = Exp})
         | LvalTail LSQUARE Exp RSQUARE                                  (Tiger.ArrayAccess {object = LvalTail, index = Exp})
 
