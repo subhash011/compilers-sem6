@@ -12,9 +12,9 @@ fun x _ = 1;
 %noshift EOF
 %pos int
 
-%term ID of Symbol.symbol
-    | INT of int
-    | STRING of string
+%term ID        of Symbol.symbol
+    | INT       of int
+    | STRING    of string
     (* Symbols *)
     | COMMA
     | COLON
@@ -69,45 +69,46 @@ fun x _ = 1;
     | UMINUS
     | LOWPREC
 
-%nonterm Program of Tiger.ast
-        | Exp of Tiger.Exp
-        | Exps of Tiger.Exp list
-        | CallArgs of Tiger.Exp list
-        | Dec of Tiger.Dec
-        | Decs of Tiger.Dec list
-        | Array of {type_: Tiger.TypeId, length: Tiger.Exp, init: Tiger.Exp}
-        | Record of {type_: Tiger.TypeId, init: {var: Tiger.id, value: Tiger.Exp} list}
-        | RecordField of {var: Tiger.id, value: Tiger.Exp}
-        | RecordFields of {var: Tiger.id, value: Tiger.Exp} list
-        | LvalExp of Tiger.Lvalue
-        | LvalTail of Tiger.Lvalue
-        | ObjCreate of Tiger.TypeId
-        | FunctionCall of {id: Tiger.id, args: Tiger.Exp list}
-        | MethodCall of {object: Tiger.Lvalue, id: Tiger.id, args: Tiger.Exp list}
-        | Negate of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
-        | Op of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
-        | Assignment of {object: Tiger.Lvalue, exp: Tiger.Exp}
-        | IfElse of {cond: Tiger.Exp, succ: Tiger.Exp, fail: Tiger.Exp option}
-        | While of {cond: Tiger.Exp, body: Tiger.Exp}
-        | For of {init: {var: Tiger.id, exp: Tiger.Exp}, exit_cond: Tiger.Exp, body: Tiger.Exp}
-        | Let of {decs: Tiger.Dec list, body: Tiger.Exp list}
-        | Variable of Tiger.id
-        | Type of Tiger.Type
-        | TypeDec of {id: Tiger.id, type_: Tiger.Type}
-        | ClassDec of {id: Tiger.id, extends: Tiger.TypeId option, classfields: Tiger.ClassField list}
-        | VarDec of {id: Tiger.id, type_: Tiger.TypeId option, init: Tiger.Exp}
-        | FunDec of {id: Tiger.id, args: Tiger.TyFields, ret: Tiger.TypeId option, body: Tiger.Exp}
-        | PrimitiveDec of {id: Tiger.id, args: Tiger.TyFields, ret: Tiger.TypeId option, body: Tiger.Exp}
-        | MethodDec of {id: Tiger.id, args: Tiger.TyFields, ret: Tiger.TypeId option, body: Tiger.Exp}
-        | AttrDec of {id: Tiger.id, type_: Tiger.TypeId option, init: Tiger.Exp}
-        | ClassFields of Tiger.ClassField list
-        | ClassField of Tiger.ClassField
-        | TypeAlias of Tiger.TypeId
-        | RecordType of Tiger.TyFields
-        | ArrayType of Tiger.TypeId
-        | ClassType of {extends: Tiger.TypeId option, classfields: Tiger.ClassField list}
-        | TyField of {var: Tiger.id, type_: Tiger.TypeId}
-        | TyFields of {var: Tiger.id, type_: Tiger.TypeId} list
+%nonterm Program        of Tiger.ast
+        | Exp           of Tiger.Exp
+        | Exps          of Tiger.Exp list
+        | CallArgs      of Tiger.Exp list
+        | Dec           of Tiger.Dec
+        | Decs          of Tiger.Dec list
+        | Array         of {type_: Tiger.TypeId, length: Tiger.Exp, init: Tiger.Exp}
+        | Record        of {type_: Tiger.TypeId, init: {name: Tiger.id, value: Tiger.Exp} list}
+        | RecordField   of {name: Tiger.id, value: Tiger.Exp}
+        | RecordFields  of {name: Tiger.id, value: Tiger.Exp} list
+        | LvalExp       of Tiger.Lvalue
+        | LvalTail      of Tiger.Lvalue
+        | ObjCreate     of Tiger.TypeId
+        | FunctionCall  of {name: Tiger.id, args: Tiger.Exp list}
+        | MethodCall    of {object: Tiger.Lvalue, name: Tiger.id, args: Tiger.Exp list}
+        | Negate        of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
+        | Op            of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
+        | Assignment    of {object: Tiger.Lvalue, exp: Tiger.Exp}
+        | IfElse        of {cond: Tiger.Exp, succ: Tiger.Exp, fail: Tiger.Exp option}
+        | While         of {cond: Tiger.Exp, body: Tiger.Exp}
+        | For           of {init: {var: Tiger.id, exp: Tiger.Exp}, exit_cond: Tiger.Exp, body: Tiger.Exp}
+        | Let           of {decs: Tiger.Dec list, body: Tiger.Exp list}
+        | Variable      of Tiger.id
+        | Type          of Tiger.Type
+        | TypeDec       of {name: Tiger.id, type_: Tiger.Type}
+        | ClassDec      of {name: Tiger.id, extends: Tiger.TypeId option, classfields: Tiger.ClassField list}
+        | VarDec        of {name: Tiger.id, type_: Tiger.TypeId option, init: Tiger.Exp}
+        | FunDec        of Tiger.FunDecType
+        | PrimitiveDec  of Tiger.FunDecType
+        | MethodDec     of Tiger.FunDecType
+        | FunDecType    of {name: Tiger.id, args: Tiger.TyFields, ret: Tiger.TypeId option, body: Tiger.Exp}
+        | AttrDec       of {name: Tiger.id, type_: Tiger.TypeId option, init: Tiger.Exp}
+        | ClassFields   of Tiger.ClassField list
+        | ClassField    of Tiger.ClassField
+        | TypeAlias     of Tiger.TypeId
+        | RecordType    of Tiger.TyFields
+        | ArrayType     of Tiger.TypeId
+        | ClassType     of {extends: Tiger.TypeId option, classfields: Tiger.ClassField list}
+        | TyField       of {name: Tiger.id, type_: Tiger.TypeId}
+        | TyFields      of {name: Tiger.id, type_: Tiger.TypeId} list
 
 
 %keyword ARRAY IF THEN ELSE WHILE FOR TO DO LET IN END OF BREAK NIL FUNCTION VAR TYPE PRIMITIVE CLASS EXTENDS METHOD NEW
@@ -194,7 +195,7 @@ RecordFields:                                                           ([])
             | RecordField                                               ([RecordField])
             | RecordField COMMA RecordFields                            (RecordField :: RecordFields)
 
-RecordField: ID EQ Exp                                                  ({var = ID, value = Exp})
+RecordField: ID EQ Exp                                                  ({name = ID, value = Exp})
 
 LvalExp: ID                                                             (Tiger.Variable ID)
     | LvalTail                                                          (LvalTail)
@@ -203,28 +204,34 @@ LvalTail: LvalExp DOT ID                                                (Tiger.R
         | ID LSQUARE Exp RSQUARE                                        (Tiger.ArrayAccess {object = Tiger.Variable ID, index = Exp})
         | LvalTail LSQUARE Exp RSQUARE                                  (Tiger.ArrayAccess {object = LvalTail, index = Exp})
 
-Dec: TYPE ID EQ Type                                                    (Tiger.TypeDec {id = ID, type_ = Type})
+Dec: TYPE ID EQ Type                                                    (Tiger.TypeDec {name = ID, type_ = Type})
     | VarDec                                                            (Tiger.VarDec VarDec)
     | FunDec                                                            (Tiger.FunDec FunDec)
     | ClassDec                                                          (Tiger.ClassDec ClassDec)
     | PrimitiveDec                                                      (Tiger.PrimitiveDec PrimitiveDec)
 
-ClassDec: CLASS ID LCURLY ClassFields RCURLY                            ({id = ID, extends = NONE, classfields = ClassFields})
-        | CLASS ID EXTENDS ID LCURLY ClassFields RCURLY                 ({id = ID1, extends = SOME ID2, classfields = ClassFields})
+ClassDec: CLASS ID LCURLY ClassFields RCURLY                            ({name = ID, extends = NONE, classfields = ClassFields})
+        | CLASS ID EXTENDS ID LCURLY ClassFields RCURLY                 ({name = ID1, extends = SOME ID2, classfields = ClassFields})
 
-VarDec: VAR ID ASSIGN Exp                                               ({id = ID, type_ = NONE, init = Exp})
-        | VAR ID COLON ID ASSIGN Exp                                    ({id = ID1, type_ = SOME ID2, init = Exp})
+VarDec: VAR ID ASSIGN Exp                                               ({name = ID, type_ = NONE, init = Exp})
+        | VAR ID COLON ID ASSIGN Exp                                    ({name = ID1, type_ = SOME ID2, init = Exp})
 
-FunDec: FUNCTION ID LPAREN TyFields RPAREN EQ Exp                       ({id = ID, args = TyFields, ret = NONE, body = Exp})
-        | FUNCTION ID LPAREN TyFields RPAREN COLON ID EQ Exp            ({id = ID1, args = TyFields, ret = SOME ID2, body = Exp})
+AttrDec: VAR ID ASSIGN Exp                                               ({name = ID, type_ = NONE, init = Exp})
+        | VAR ID COLON ID ASSIGN Exp                                     ({name = ID1, type_ = SOME ID2, init = Exp})
 
-PrimitiveDec: PRIMITIVE ID LPAREN TyFields RPAREN EQ Exp                ({id = ID, args = TyFields, ret = NONE, body = Exp})
-            | PRIMITIVE ID LPAREN TyFields RPAREN COLON ID EQ Exp       ({id = ID1, args = TyFields, ret = SOME ID2, body = Exp})
+FunDec: FUNCTION FunDecType                                             (FunDecType)
+
+PrimitiveDec: PRIMITIVE FunDecType                                      (FunDecType)
+
+MethodDec: METHOD FunDecType                                            (FunDecType)
 
 Type: ID                                                                (Tiger.TypeAlias ID)
     | RecordType                                                        (Tiger.RecordType RecordType)
     | ArrayType                                                         (Tiger.ArrayType ArrayType)
     | ClassType                                                         (Tiger.ClassType ClassType)
+
+FunDecType: ID LPAREN TyFields RPAREN EQ Exp                            ({name = ID, args = TyFields, ret = NONE, body = Exp})
+        | ID LPAREN TyFields RPAREN COLON ID EQ Exp                     ({name = ID1, args = TyFields, ret = SOME ID2, body = Exp})
 
 RecordType: LCURLY TyFields RCURLY                                      (TyFields)
 
@@ -240,21 +247,15 @@ ClassFields:                                                            ([])
 ClassField: AttrDec                                                     (Tiger.AttrDec AttrDec)
         | MethodDec                                                     (Tiger.MethodDec MethodDec)
 
-AttrDec: VAR ID ASSIGN Exp                                               ({id = ID, type_ = NONE, init = Exp})
-        | VAR ID COLON ID ASSIGN Exp                                     ({id = ID1, type_ = SOME ID2, init = Exp})
-
-MethodDec: METHOD ID LPAREN TyFields RPAREN EQ Exp                      ({id = ID, args = TyFields, ret = NONE, body = Exp})
-        | METHOD ID LPAREN TyFields RPAREN COLON ID EQ Exp              ({id = ID1, args = TyFields, ret = SOME ID2, body = Exp})
-
 TyFields:                                                               ([])
         | TyField                                                       ([TyField])
         | TyField COMMA TyFields                                        (TyField :: TyFields)
 
-TyField: ID COLON ID                                                    ({var = ID1, type_ = ID2})
+TyField: ID COLON ID                                                    ({name = ID1, type_ = ID2})
 
-FunctionCall: ID LPAREN CallArgs RPAREN                                 ({id = ID, args = CallArgs})
+FunctionCall: ID LPAREN CallArgs RPAREN                                 ({name = ID, args = CallArgs})
 
-MethodCall: LvalExp DOT ID LPAREN CallArgs RPAREN                       ({object = LvalExp, id = ID, args = CallArgs})
+MethodCall: LvalExp DOT ID LPAREN CallArgs RPAREN                       ({object = LvalExp, name = ID, args = CallArgs})
 
 CallArgs:                                                               ([])
         | Exp                                                           ([Exp])

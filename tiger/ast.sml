@@ -9,7 +9,7 @@ struct
 
     type id = Symbol.symbol
     type TypeId = id
-    type TyFields = {var: id, type_: TypeId} list
+    type TyFields = {name: id, type_: TypeId} list
 
     datatype ast = Expr of Exp
             | Decs of Dec list
@@ -18,11 +18,11 @@ struct
             | Int of int
             | String of string
             | Array of {type_: TypeId, length: Exp, init: Exp}
-            | Record of {type_: TypeId, init: {var: id, value: Exp} list}
+            | Record of {type_: TypeId, init: {name: id, value: Exp} list}
             | New of TypeId
             | LvalExp of Lvalue
-            | FunctionCall of {id: id, args: Exp list}
-            | MethodCall of {object: Lvalue, id: id, args: Exp list}
+            | FunctionCall of {name: id, args: Exp list}
+            | MethodCall of {object: Lvalue, name: id, args: Exp list}
             | Negate of Exp
             | Op of {left: Exp, oper: BinOp, right: Exp}
             | Exps of Exp list
@@ -50,8 +50,8 @@ struct
             | And
             | Or
 
-    and Dec = TypeDec of {id: id, type_: Type}
-            | ClassDec of {id: id, extends: TypeId option, classfields: ClassFields}
+    and Dec = TypeDec of {name: id, type_: Type}
+            | ClassDec of {name: id, extends: TypeId option, classfields: ClassFields}
             | VarDec of VarDecType
             | FunDec of FunDecType
             | PrimitiveDec of FunDecType
@@ -65,8 +65,8 @@ struct
             | ClassType of {extends: TypeId option, classfields: ClassFields}
 
     withtype ClassFields = ClassField list
-    and VarDecType = {id: id, type_: TypeId option, init: Exp}
-    and FunDecType = {id: id, args: TyFields, ret: TypeId option, body: Exp}
+    and VarDecType = {name: id, type_: TypeId option, init: Exp}
+    and FunDecType = {name: id, args: TyFields, ret: TypeId option, body: Exp}
 end
 
 (*
