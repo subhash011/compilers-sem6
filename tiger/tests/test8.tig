@@ -1,0 +1,5 @@
+/*
+correct if
+here the else will be bounded to nearest else
+*/
+if (10 > 20) then if 1 > 2 then 20 else 40

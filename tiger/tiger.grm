@@ -72,13 +72,14 @@ fun x _ = 1;
 %nonterm Program of Tiger.ast
         | Exp of Tiger.Exp
         | Exps of Tiger.Exp list
+        | CallArgs of Tiger.Exp list
         | Dec of Tiger.Dec
         | Decs of Tiger.Dec list
         | Array of {type_: Tiger.TypeId, length: Tiger.Exp, init: Tiger.Exp}
         | Record of {type_: Tiger.TypeId, init: {var: Tiger.id, value: Tiger.Exp} list}
         | RecordField of {var: Tiger.id, value: Tiger.Exp}
         | RecordFields of {var: Tiger.id, value: Tiger.Exp} list
-        | Lval of Tiger.Lvalue
+        | LvalExp of Tiger.Lvalue
         | LvalTail of Tiger.Lvalue
         | ObjCreate of Tiger.TypeId
         | FunctionCall of {id: Tiger.id, args: Tiger.Exp list}
@@ -132,14 +133,14 @@ Program: Exp                                                            (Tiger.E
         | Decs                                                          (Tiger.Decs Decs)
 
 Exp: NIL                                                                (Tiger.Nil)
-    | ID                                                                (Tiger.Lval (Tiger.Variable ID))
+    | ID                                                                (Tiger.LvalExp (Tiger.Variable ID))
     | INT                                                               (Tiger.Int INT)
     | STRING                                                            (Tiger.String STRING)
     | FunctionCall                                                      (Tiger.FunctionCall FunctionCall)
     | MethodCall                                                        (Tiger.MethodCall MethodCall)
     | Array                                                             (Tiger.Array Array)
     | Record                                                            (Tiger.Record Record)
-    | LvalTail                                                          (Tiger.Lval LvalTail)
+    | LvalTail                                                          (Tiger.LvalExp LvalTail)
     | Negate                                                            (Tiger.Op Negate)
     | Op                                                                (Tiger.Op Op)
     | Assignment                                                        (Tiger.Assignment Assignment)
@@ -168,7 +169,7 @@ Op: Exp PLUS Exp                                                        ({left =
     | Exp AND Exp                                                       ({left = Exp1, oper = Tiger.And, right = Exp2})
     | Exp OR Exp                                                        ({left = Exp1, oper = Tiger.Or, right = Exp2})
 
-Assignment: Lval ASSIGN Exp                                             ({object = Lval, exp = Exp})
+Assignment: LvalExp ASSIGN Exp                                          ({object = LvalExp, exp = Exp})
 
 IfElse: IF Exp THEN Exp                                                 ({cond = Exp1, succ = Exp2, fail = NONE})
         | IF Exp THEN Exp ELSE Exp                                      ({cond = Exp1, succ = Exp2, fail = SOME Exp3})
@@ -189,15 +190,16 @@ Array: ID LSQUARE Exp RSQUARE OF Exp                                    ({type_ 
 
 Record: ID LCURLY RecordFields RCURLY                                   ({type_ = ID, init = RecordFields})
 
-RecordFields: RecordField                                               ([RecordField])
+RecordFields:                                                           ([])
+            | RecordField                                               ([RecordField])
             | RecordField COMMA RecordFields                            (RecordField :: RecordFields)
 
 RecordField: ID EQ Exp                                                  ({var = ID, value = Exp})
 
-Lval: ID                                                                (Tiger.Variable ID)
+LvalExp: ID                                                             (Tiger.Variable ID)
     | LvalTail                                                          (LvalTail)
 
-LvalTail: Lval DOT ID                                                   (Tiger.Reference {object = Lval, var = ID})
+LvalTail: LvalExp DOT ID                                                (Tiger.Reference {object = LvalExp, var = ID})
         | ID LSQUARE Exp RSQUARE                                        (Tiger.ArrayAccess {object = Tiger.Variable ID, index = Exp})
         | LvalTail LSQUARE Exp RSQUARE                                  (Tiger.ArrayAccess {object = LvalTail, index = Exp})
 
@@ -208,16 +210,16 @@ Dec: TYPE ID EQ Type                                                    (Tiger.T
     | PrimitiveDec                                                      (Tiger.PrimitiveDec PrimitiveDec)
 
 ClassDec: CLASS ID LCURLY ClassFields RCURLY                            ({id = ID, extends = NONE, classfields = ClassFields})
-        | CLASS ID EXTENDS ID LCURLY ClassFields RCURLY                 ({id = ID, extends = SOME ID, classfields = ClassFields})
+        | CLASS ID EXTENDS ID LCURLY ClassFields RCURLY                 ({id = ID1, extends = SOME ID2, classfields = ClassFields})
 
 VarDec: VAR ID ASSIGN Exp                                               ({id = ID, type_ = NONE, init = Exp})
-        | VAR ID COLON ID ASSIGN Exp                                    ({id = ID, type_ = SOME ID, init = Exp})
+        | VAR ID COLON ID ASSIGN Exp                                    ({id = ID1, type_ = SOME ID2, init = Exp})
 
 FunDec: FUNCTION ID LPAREN TyFields RPAREN EQ Exp                       ({id = ID, args = TyFields, ret = NONE, body = Exp})
-        | FUNCTION ID LPAREN TyFields RPAREN COLON ID EQ Exp            ({id = ID, args = TyFields, ret = SOME ID, body = Exp})
+        | FUNCTION ID LPAREN TyFields RPAREN COLON ID EQ Exp            ({id = ID1, args = TyFields, ret = SOME ID2, body = Exp})
 
 PrimitiveDec: PRIMITIVE ID LPAREN TyFields RPAREN EQ Exp                ({id = ID, args = TyFields, ret = NONE, body = Exp})
-            | PRIMITIVE ID LPAREN TyFields RPAREN COLON ID EQ Exp       ({id = ID, args = TyFields, ret = SOME ID, body = Exp})
+            | PRIMITIVE ID LPAREN TyFields RPAREN COLON ID EQ Exp       ({id = ID1, args = TyFields, ret = SOME ID2, body = Exp})
 
 Type: ID                                                                (Tiger.TypeAlias ID)
     | RecordType                                                        (Tiger.RecordType RecordType)
@@ -239,17 +241,21 @@ ClassField: AttrDec                                                     (Tiger.A
         | MethodDec                                                     (Tiger.MethodDec MethodDec)
 
 AttrDec: VAR ID ASSIGN Exp                                               ({id = ID, type_ = NONE, init = Exp})
-        | VAR ID COLON ID ASSIGN Exp                                     ({id = ID, type_ = SOME ID, init = Exp})
+        | VAR ID COLON ID ASSIGN Exp                                     ({id = ID1, type_ = SOME ID2, init = Exp})
 
 MethodDec: METHOD ID LPAREN TyFields RPAREN EQ Exp                      ({id = ID, args = TyFields, ret = NONE, body = Exp})
-        | METHOD ID LPAREN TyFields RPAREN COLON ID EQ Exp              ({id = ID, args = TyFields, ret = SOME ID, body = Exp})
+        | METHOD ID LPAREN TyFields RPAREN COLON ID EQ Exp              ({id = ID1, args = TyFields, ret = SOME ID2, body = Exp})
 
 TyFields:                                                               ([])
         | TyField                                                       ([TyField])
         | TyField COMMA TyFields                                        (TyField :: TyFields)
 
-TyField: ID COLON ID                                                    ({var = ID, type_ = ID})
+TyField: ID COLON ID                                                    ({var = ID1, type_ = ID2})
 
-FunctionCall: ID LPAREN Exps RPAREN                                     ({id = ID, args = Exps})
+FunctionCall: ID LPAREN CallArgs RPAREN                                 ({id = ID, args = CallArgs})
 
-MethodCall: Lval DOT ID LPAREN Exps RPAREN                              ({object = Lval, id = ID, args = Exps})
+MethodCall: LvalExp DOT ID LPAREN CallArgs RPAREN                       ({object = LvalExp, id = ID, args = CallArgs})
+
+CallArgs:                                                               ([])
+        | Exp                                                           ([Exp])
+        | Exp COMMA CallArgs                                            (Exp :: CallArgs)

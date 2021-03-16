@@ -20,7 +20,7 @@ struct
             | Array of {type_: TypeId, length: Exp, init: Exp}
             | Record of {type_: TypeId, init: {var: id, value: Exp} list}
             | New of TypeId
-            | Lval of Lvalue
+            | LvalExp of Lvalue
             | FunctionCall of {id: id, args: Exp list}
             | MethodCall of {object: Lvalue, id: id, args: Exp list}
             | Negate of Exp

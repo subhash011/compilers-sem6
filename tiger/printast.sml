@@ -20,19 +20,19 @@ struct
                                         ["Record(type_ = ", name type_, ", init = "] @ init_terms @ [")"]
                                     end
         | get_strs_exp (New t) = ["New(", name t, ")"]
-        | get_strs_exp (Lval l) = get_strs_lval l
+        | get_strs_exp (LvalExp l) =  ["LvalExp("] @ get_strs_lval l @ [")"]
         | get_strs_exp (FunctionCall f) = let
                                                 val {id, args} = f
                                                 val args_val = ["["] @  get_strs_exps args @ ["]"]
                                             in
-                                                ["FunctionCall(id = ", name id, ", args = "] @ args_val
+                                                ["FunctionCall(id = ", name id, ", args = "] @ args_val @ [")"]
                                             end
         | get_strs_exp (MethodCall f) = let
                                             val {object, id, args} = f
                                             val obj_val = get_strs_lval object
                                             val args_val = ["["] @  get_strs_exps args @ ["]"]
                                         in
-                                            ["MethodCall(object = "] @ obj_val @ [", id = ", name id, ", args = "] @ args_val
+                                            ["MethodCall(object = "] @ obj_val @ [", id = ", name id, ", args = "] @ args_val @ [")"]
                                         end
         | get_strs_exp (Negate n) = (["Negate("] @ (get_strs_exp n) @ [")"])
         | get_strs_exp (Exps e) = ["["] @  get_strs_exps e @ ["]"]
@@ -40,7 +40,7 @@ struct
                                             val {object, exp} = a
                                             val obj_val = get_strs_lval object
                                         in
-                                            ["Assignment(object = "] @ obj_val @ [", exp = "] @ get_strs_exp exp
+                                            ["Assignment(object = "] @ obj_val @ [", exp = "] @ get_strs_exp exp @ [")"]
                                         end
         | get_strs_exp (IfElse ie) = let
                                             val {cond, succ, fail} = ie
@@ -49,7 +49,7 @@ struct
                                         in
                                             case fail of
                                             SOME t => ["IfElse(cond = "] @ cond_val @ [", succ = "] @ succ_val @ [", fail = "] @ (get_strs_exp t) @ [")"]
-                                            | NONE => ["IfElse(cond = "] @ cond_val @ [", succ = "] @ succ_val @ [", fail = "] @ [")"]
+                                            | NONE => ["IfElse(cond = "] @ cond_val @ [", succ = "] @ succ_val @ [")"]
                                         end
         | get_strs_exp (While w) = let
                                             val {cond, body} = w
@@ -79,9 +79,10 @@ struct
                                     val {left, oper, right} = operation
                                     val opval = (get_op oper)
                                 in
-                                    ["Op(left = "] @ (get_strs_exp left) @ [", oper = "] @ opval @ [", right = "] @ (get_strs_exp right)
+                                    ["Op(left = "] @ (get_strs_exp left) @ [", oper = "] @ opval @ [", right = "] @ (get_strs_exp right) @ [")"]
                                 end
         | get_strs_exp (Nil) = ["Nil"]
+
     and get_op Plus = ["Plus"]
         | get_op Minus = ["Minus"]
         | get_op Mul = ["Mul"]
@@ -94,9 +95,6 @@ struct
         | get_op Le = ["Le"]
         | get_op And = ["And"]
         | get_op Or = ["Or"]
-
-    and get_strs_exps [] = []
-        | get_strs_exps (x::xs) = (get_strs_exp x) @ (get_strs_exps xs)
 
     and get_strs_lval (Variable v) = ["Variable(", name v, ")"]
         | get_strs_lval (Reference r) = let
@@ -125,7 +123,7 @@ struct
     and get_strs_tyfield t = let
                                     val {var, type_} = t;
                                 in
-                                    ["var = ", name var, ", type_ = ", (name type_)]
+                                    ["{", "var = ", name var, ", type_ = ", (name type_), "}"]
                                 end
 
     and get_strs_classfield (AttrDec a) = let
@@ -140,7 +138,7 @@ struct
 
     and get_strs_fundectype what f = let
                                     val {id, args, ret, body} = f
-                                    val tyfields = ["{"] @ get_strs_tyfields args @ ["}"]
+                                    val tyfields = ["["] @ get_strs_tyfields args @ ["]"]
                                     val exp = get_strs_exp body
                                 in
                                     case ret of
@@ -171,9 +169,9 @@ struct
 
     and get_strs_type (TypeAlias t) = ["TypeAlias(", name t,")"]
         | get_strs_type (RecordType r) = let
-                                            val tyfields = ["{"] @ get_strs_tyfields r @ ["}"]
+                                            val tyfields = ["["] @ get_strs_tyfields r @ ["]"]
                                         in
-                                            ["RecordType(["] @ tyfields @ ["])"]
+                                            ["RecordType("] @ tyfields @ [")"]
                                         end
         | get_strs_type (ArrayType a) = ["ArrayType(", name a, ")"]
         | get_strs_type (ClassType c) = let
@@ -188,7 +186,7 @@ struct
     and get_strs_tyfields [] = []
         | get_strs_tyfields (x::xs) = (case xs of
                                             [] => (get_strs_tyfield x) @ (get_strs_tyfields xs)
-                                            | _ => (get_strs_tyfield x) @ ["}, {"] @ (get_strs_tyfields xs)
+                                            | _ => (get_strs_tyfield x) @ [", "] @ (get_strs_tyfields xs)
                                         )
 
     and get_strs_classfields [] = []
@@ -196,6 +194,11 @@ struct
                                             [] => (get_strs_classfield x) @ (get_strs_classfields xs)
                                             | _ => (get_strs_classfield x) @ [", "] @  (get_strs_classfields xs)
                                             )
+    and get_strs_exps [] = []
+        | get_strs_exps (x::xs) = (case xs of
+                                    [] => (get_strs_exp x) @ (get_strs_exps xs)
+                                    | _ => (get_strs_exp x) @ [", "] @ (get_strs_exps xs)
+                                    )
 
     and get_strs_decs [] = []
         | get_strs_decs (x::xs) = (case xs of
@@ -204,7 +207,7 @@ struct
                                     )
 
     and get_strs_ast (Decs decs) = (["Decs(["] @ get_strs_decs decs @ ["])"] @ ["\n"])
-        | get_strs_ast (Expr exp) = (["Exp("] @ get_strs_exp exp @ [")"] @ ["\n"])
+        | get_strs_ast (Expr exp) = (["Expr("] @ get_strs_exp exp @ [")"] @ ["\n"])
 
     and print_ast a = print_strs (get_strs_ast a);
 

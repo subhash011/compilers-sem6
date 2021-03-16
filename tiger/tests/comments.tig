@@ -1,9 +1,0 @@
-/*
-This is a comment,
-/* This is nested */
-/* This example shows a multi line string */
-*/
-var a := "line1
-line2 space newline
-line3 \""
-var b := 1
