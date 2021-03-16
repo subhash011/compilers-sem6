@@ -1,14 +1,15 @@
 structure PrintAST =
 struct
     open Tiger;
-    fun print_str s = TextIO.output (TextIO.stdOut, s)
+    fun name s = Symbol.name s
+    and print_str s = TextIO.output (TextIO.stdOut, s)
     and print_strs [] = []
         | print_strs (x::xs) = (print_str x) :: (print_strs xs)
 
     and get_strs_exp (Array a) = let
                                     val {type_, length, init} = a
                                 in
-                                    ["Array(type_ = ", type_, ", length = "] @ (get_strs_exp length) @ [", init = "] @ (get_strs_exp init) @ [")"]
+                                    ["Array(type_ = ", name type_, ", length = "] @ (get_strs_exp length) @ [", init = "] @ (get_strs_exp init) @ [")"]
                                 end
         | get_strs_exp (Int i) = (["Int(", Int.toString i ,")"])
         | get_strs_exp (String s) = (["String(", s ,")"])
@@ -16,22 +17,22 @@ struct
                                         val {type_, init} = r
                                         val init_terms = get_records_init init
                                     in
-                                        ["Record(type_ = ", type_, ", init = "] @ init_terms @ [")"]
+                                        ["Record(type_ = ", name type_, ", init = "] @ init_terms @ [")"]
                                     end
-        | get_strs_exp (New t) = ["New(", t, ")"]
+        | get_strs_exp (New t) = ["New(", name t, ")"]
         | get_strs_exp (Lval l) = get_strs_lval l
         | get_strs_exp (FunctionCall f) = let
                                                 val {id, args} = f
                                                 val args_val = ["["] @  get_strs_exps args @ ["]"]
                                             in
-                                                ["FunctionCall(id = ", id, ", args = "] @ args_val
+                                                ["FunctionCall(id = ", name id, ", args = "] @ args_val
                                             end
         | get_strs_exp (MethodCall f) = let
                                             val {object, id, args} = f
                                             val obj_val = get_strs_lval object
                                             val args_val = ["["] @  get_strs_exps args @ ["]"]
                                         in
-                                            ["MethodCall(object = "] @ obj_val @ [", id = ", id, ", args = "] @ args_val
+                                            ["MethodCall(object = "] @ obj_val @ [", id = ", name id, ", args = "] @ args_val
                                         end
         | get_strs_exp (Negate n) = (["Negate("] @ (get_strs_exp n) @ [")"])
         | get_strs_exp (Exps e) = ["["] @  get_strs_exps e @ ["]"]
@@ -64,7 +65,7 @@ struct
                                             val exit_val = get_strs_exp exit_cond
                                             val body_val = get_strs_exp body
                                         in
-                                            ["For(init = {var = ", var, ", exp = "] @ exp @ ["}, exit_cond = "] @ exit_val @ [", body = "] @ body_val @ [")"]
+                                            ["For(init = {var = ", name var, ", exp = "] @ exp @ ["}, exit_cond = "] @ exit_val @ [", body = "] @ body_val @ [")"]
                                         end
         | get_strs_exp Break = ["Break"]
         | get_strs_exp (Let l) = let
@@ -97,12 +98,12 @@ struct
     and get_strs_exps [] = []
         | get_strs_exps (x::xs) = (get_strs_exp x) @ (get_strs_exps xs)
 
-    and get_strs_lval (Variable v) = ["Variable(", v, ")"]
+    and get_strs_lval (Variable v) = ["Variable(", name v, ")"]
         | get_strs_lval (Reference r) = let
                                             val {object, var} = r
                                             val obj_val = get_strs_lval object
                                         in
-                                            ["Reference(object = "] @ obj_val @ [", var = ", var]
+                                            ["Reference(object = "] @ obj_val @ [", var = ", name var]
                                         end
         | get_strs_lval (ArrayAccess a) = let
                                                 val {object, index} = a
@@ -115,7 +116,7 @@ struct
     and get_record_init r = let
                                 val {var, value} = r
                             in
-                                ["{var = ", var, ", value = "] @ get_strs_exp value @ ["}, "]
+                                ["{var = ", (name var), ", value = "] @ get_strs_exp value @ ["}, "]
                             end
 
     and get_records_init [] = []
@@ -124,7 +125,7 @@ struct
     and get_strs_tyfield t = let
                                     val {var, type_} = t;
                                 in
-                                    ["var = ", var, ", type_ = ", type_]
+                                    ["var = ", name var, ", type_ = ", (name type_)]
                                 end
 
     and get_strs_classfield (AttrDec a) = let
@@ -132,8 +133,8 @@ struct
                                                 val exp = get_strs_exp init
                                             in
                                                 case type_ of
-                                                SOME t => (["AttrDec(id = ", id, ", type_ = ", t, ", init = "] @ exp  @ [")"])
-                                                | NONE => (["AttrDec(id = ", id, ", init = "] @ exp @ [")"])
+                                                SOME t => (["AttrDec(id = ", name id, ", type_ = ", name t, ", init = "] @ exp  @ [")"])
+                                                | NONE => (["AttrDec(id = ", name id, ", init = "] @ exp @ [")"])
                                             end
         | get_strs_classfield (MethodDec m) = get_strs_fundectype "MethodDec" m
 
@@ -143,8 +144,8 @@ struct
                                     val exp = get_strs_exp body
                                 in
                                     case ret of
-                                    SOME t => ([what, "(id = ", id, ", args = "] @ tyfields @ [", ret = ", t] @ [", body = "] @ exp @ [")"])
-                                    | NONE => ([what, "(id = ", id, ", args = "] @ tyfields @ [", body = "] @ exp @ [")"])
+                                    SOME t => ([what, "(id = ", name id, ", args = "] @ tyfields @ [", ret = ", name t] @ [", body = "] @ exp @ [")"])
+                                    | NONE => ([what, "(id = ", name id, ", args = "] @ tyfields @ [", body = "] @ exp @ [")"])
                                 end
 
     and get_strs_dec (VarDec v) = let
@@ -152,35 +153,35 @@ struct
                                     val exp = get_strs_exp init
                                 in
                                 case type_ of
-                                SOME t => (["VarDec(id = ", id, ", type_ = ", t, ", init = "] @ exp @ [")"])
-                                | NONE => (["VarDec(id = ", id, ", init = "] @ exp @ [")"])
+                                SOME t => (["VarDec(id = ", name id, ", type_ = ", name t, ", init = "] @ exp @ [")"])
+                                | NONE => (["VarDec(id = ", name id, ", init = "] @ exp @ [")"])
                                 end
         | get_strs_dec (ClassDec c) = let
                                             val {id, extends, classfields} = c
                                             val cfs = ["["] @  get_strs_classfields classfields @ ["]"]
                                         in
                                             case extends of
-                                            SOME e => (["ClassDec(id = ", id, ", extends = ", e, ", classfields = "] @ cfs @ [")"])
-                                            | NONE => (["ClassDec(id = ", id, ", classfields = "] @ cfs @ [")"])
+                                            SOME e => (["ClassDec(id = ", name id, ", extends = ", name id, ", classfields = "] @ cfs @ [")"])
+                                            | NONE => (["ClassDec(id = ", name id, ", classfields = "] @ cfs @ [")"])
                                         end
 
-        | get_strs_dec (TypeDec t) = let val {id, type_} = t in ["TypeDec(id = ", id, ", type_ = "] @ get_strs_type type_ @ [")"] end
+        | get_strs_dec (TypeDec t) = let val {id, type_} = t in ["TypeDec(id = ", name id, ", type_ = "] @ get_strs_type type_ @ [")"] end
         | get_strs_dec (FunDec f) = get_strs_fundectype "FunDec" f
         | get_strs_dec (PrimitiveDec p) = get_strs_fundectype "PrimitiveDec" p
 
-    and get_strs_type (TypeAlias t) = ["TypeAlias(", t,")"]
+    and get_strs_type (TypeAlias t) = ["TypeAlias(", name t,")"]
         | get_strs_type (RecordType r) = let
                                             val tyfields = ["{"] @ get_strs_tyfields r @ ["}"]
                                         in
                                             ["RecordType(["] @ tyfields @ ["])"]
                                         end
-        | get_strs_type (ArrayType a) = ["ArrayType(", a, ")"]
+        | get_strs_type (ArrayType a) = ["ArrayType(", name a, ")"]
         | get_strs_type (ClassType c) = let
                                             val {extends, classfields} = c
                                             val cfs = ["["] @  get_strs_classfields classfields @ ["]"]
                                         in
                                             case extends of
-                                            SOME e => (["ClassType(extends = ", e, ", classfields = "] @ cfs)
+                                            SOME e => (["ClassType(extends = ", name e, ", classfields = "] @ cfs)
                                             | NONE => (["ClassType(classfields = "] @ cfs)
                                         end
 

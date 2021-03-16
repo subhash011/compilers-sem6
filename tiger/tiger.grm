@@ -2,7 +2,6 @@
 (* This line is just to get syntax highlighting in vscode *)
 fun x _ = 1;
 
-
 %%
 
 %name Tiger
@@ -13,7 +12,7 @@ fun x _ = 1;
 %noshift EOF
 %pos int
 
-%term ID of string
+%term ID of Symbol.symbol
     | INT of int
     | STRING of string
     (* Symbols *)
@@ -126,10 +125,6 @@ want else to be bound to the nearest if so we shift *)
 %left PLUS MINUS
 %left MUL DIV
 %left UMINUS
-
-%value ID ("bogus")
-%value INT (1)
-%value STRING ("")
 
 %%
 

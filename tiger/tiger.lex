@@ -27,9 +27,8 @@ digit = [0-9];
 digits = [0-9]+;
 alpha = [a-zA-Z];
 alphas = {alpha}+;
-QUOTE = "\"";
 strings = "\""(\\.|[^\\"])*"\"";
-%s COMMENT STRING;
+%s COMMENT;
 
 %%
 
@@ -84,6 +83,6 @@ strings = "\""(\\.|[^\\"])*"\"";
 <INITIAL> "|" => (Tokens.OR (yypos, yypos + 1));
 <INITIAL> ":=" => (Tokens.ASSIGN (yypos, yypos + 2));
 <INITIAL> {digits} => (Tokens.INT(valOf (Int.fromString yytext), yypos, yypos + size yytext));
-<INITIAL> {alpha}({alpha}|{digits}|"_")* => (Tokens.ID (yytext, yypos, yypos + size(yytext)));
+<INITIAL> {alpha}({alpha}|{digits}|"_")* => (Tokens.ID (Symbol.symbol yytext, yypos, yypos + size(yytext)));
 <INITIAL> {strings} => (Tokens.STRING(String.substring(yytext, 1, String.size(yytext) - 2), yypos, yypos + size(yytext)));
 . => (ErrorMsg.error yypos ("Illegal character '" ^ yytext ^ "' found"); lex());

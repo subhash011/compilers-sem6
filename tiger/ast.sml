@@ -7,7 +7,7 @@ AST of the Tiger Language
 structure Tiger =
 struct
 
-    type id = string
+    type id = Symbol.symbol
     type TypeId = id
     type TyFields = {var: id, type_: TypeId} list
 
