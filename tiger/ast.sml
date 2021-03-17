@@ -54,7 +54,7 @@ struct
             | ClassDec of {name: id, extends: TypeId option, classfields: ClassFields}
             | VarDec of VarDecType
             | FunDec of FunDecType
-            | PrimitiveDec of FunDecType
+            | PrimitiveDec of {name: id, args: TyFields, ret: TypeId option}
 
     and ClassField = AttrDec of VarDecType
             | MethodDec of FunDecType

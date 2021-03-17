@@ -2,8 +2,8 @@
 nested comments
 */ */
 let
-    var a := arr [10] of 1
-    var b := "A string"
+    primitive one(a: int, b: string, c: func) : int
+    function  one() : int = 1
 in
-    1 + 2
+    /**/
 end

@@ -97,7 +97,7 @@ fun x _ = 1;
         | ClassDec      of {name: Tiger.id, extends: Tiger.TypeId option, classfields: Tiger.ClassField list}
         | VarDec        of {name: Tiger.id, type_: Tiger.TypeId option, init: Tiger.Exp}
         | FunDec        of Tiger.FunDecType
-        | PrimitiveDec  of Tiger.FunDecType
+        | PrimitiveDec  of {name: Tiger.id, args: Tiger.TyFields, ret: Tiger.TypeId option}
         | MethodDec     of Tiger.FunDecType
         | FunDecType    of {name: Tiger.id, args: Tiger.TyFields, ret: Tiger.TypeId option, body: Tiger.Exp}
         | AttrDec       of {name: Tiger.id, type_: Tiger.TypeId option, init: Tiger.Exp}
@@ -114,7 +114,6 @@ fun x _ = 1;
 %keyword ARRAY IF THEN ELSE WHILE FOR TO DO LET IN END OF BREAK NIL FUNCTION VAR TYPE PRIMITIVE CLASS EXTENDS METHOD NEW
 %start Program
 
-%nonassoc
 %nonassoc DO OF FUNCTION TYPE TO
 %nonassoc ASSIGN
 (* Right associativity leads to shifting and we
@@ -221,7 +220,8 @@ AttrDec: VAR ID ASSIGN Exp                                               ({name 
 
 FunDec: FUNCTION FunDecType                                             (FunDecType)
 
-PrimitiveDec: PRIMITIVE FunDecType                                      (FunDecType)
+PrimitiveDec: PRIMITIVE ID LPAREN TyFields RPAREN                       ({name = ID, args = TyFields, ret = NONE})
+            | PRIMITIVE ID LPAREN TyFields RPAREN COLON ID              ({name = ID1, args = TyFields, ret = SOME ID2})
 
 MethodDec: METHOD FunDecType                                            (FunDecType)
 

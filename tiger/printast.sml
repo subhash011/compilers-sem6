@@ -170,7 +170,14 @@ struct
                                     end
 
         | strs_dec (FunDec f) = strs_fundectype "FunDec" f
-        | strs_dec (PrimitiveDec p) = strs_fundectype "PrimitiveDec" p
+        | strs_dec (PrimitiveDec p) = let
+                                            val {name, args, ret} = p
+                                            val tyfields = ["["] @ strs_tyfields args @ ["]"]
+                                        in
+                                            case ret of
+                                            SOME t => (["PrimitiveDec(name = ", sym_name name, ", args = "] @ tyfields @ [", ret = ", sym_name t] @ [")"])
+                                            | NONE => (["PrimitiveDec(name = ", sym_name name, ", args = "] @ tyfields @ [")"])
+                                        end
 
     and strs_type (TypeAlias t) = ["TypeAlias(", sym_name t,")"]
         | strs_type (RecordType r) =    let
