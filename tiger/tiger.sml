@@ -13,12 +13,12 @@ val makeFileLexer      = makeTigerLexer o TextIO.openIn
 
 val thisLexer = case CommandLine.arguments() of
 		    []  => makeTigerLexer TextIO.stdIn
-		 |  [x] => (makeFileLexer x)
+		 |  [x] => (ErrorMsg.fileName := #file (OS.Path.splitDirFile x); makeFileLexer x)
 		 |  _   => (TextIO.output(TextIO.stdErr, "usage: tiger file"); OS.Process.exit OS.Process.failure)
 
-fun print_error (s,pos:int,_) = ErrorMsg.error pos s
+fun print_error (s, pos1:int, pos2: int) = (ErrorMsg.error pos2 s);
 
-val (program,_) = TigerParser.parse (0,thisLexer,print_error,()) (* parsing *)
+val (program,_) = TigerParser.parse (0, thisLexer, print_error,  ()) (* parsing *)
 val _           = (PrintAST.print_ast program)
 
 end

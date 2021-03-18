@@ -16,26 +16,29 @@ fun err pos msg = ErrorMsg.error pos msg;
 
 fun eof() = let
                 val pos = hd(!linePos)
+                val ln = !lineNum
                 val commentError = "Comments are not balanced."
             in
                 (if !commentDepth <> 0
                 then err pos commentError else ();
-                Tokens.EOF(pos,pos))
+                Tokens.EOF(pos, pos))
             end;
 
 %%
 %header (functor TigerLexFun(structure Tokens : Tiger_TOKENS));
+
 ws    = [\ \t];
 digit = [0-9];
 digits = [0-9]+;
 alpha = [a-zA-Z];
 alphas = {alpha}+;
 strings = "\""(\\.|[^\\"])*"\"";
+newline = (\n | \r | \r\n | \n\r);
 %s COMMENT;
 
 %%
 
-<INITIAL,COMMENT> \n =>                     (inc_ref lineNum 1;  linePos := yypos :: !linePos; lex());
+<INITIAL,COMMENT> {newline} =>              (inc_ref lineNum 1;  linePos := yypos :: !linePos; lex());
 <INITIAL> {ws}+ =>                          (lex());
 <INITIAL,COMMENT> "/*" =>                   (YYBEGIN COMMENT; commentDepth := !commentDepth + 1; lex());
 <COMMENT> "*/" =>                           (commentDepth := !commentDepth - 1; if !commentDepth = 0 then YYBEGIN INITIAL else (); lex());
@@ -88,4 +91,4 @@ strings = "\""(\\.|[^\\"])*"\"";
 <INITIAL> {digits} =>                       (Tokens.INT(valOf (Int.fromString yytext), yypos, yypos + size yytext));
 <INITIAL> {alpha}({alpha}|{digits}|"_")* => (Tokens.ID (Symbol.symbol yytext, yypos, yypos + size(yytext)));
 <INITIAL> {strings} =>                      (Tokens.STRING(String.substring(yytext, 1, String.size(yytext) - 2), yypos, yypos + size(yytext)));
-. =>                                        (err yypos ("Syntax error '" ^ yytext ^ "' found"); lex());
+. =>                                        (err yypos ("Illegal character '" ^ yytext ^ "' found"); linePos := yypos :: !linePos; eof());

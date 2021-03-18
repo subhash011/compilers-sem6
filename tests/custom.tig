@@ -1,9 +1,9 @@
 /* /*
 nested comments
 */ */
-let
-    primitive one(a: int, b: string, c: func) : int
-    function  one() : int = 1
-in
-    /**/
-end
+
+
+
+
+
+var a :=? 1
