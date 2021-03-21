@@ -21,6 +21,9 @@ ${TIG_BIN}: ${TIG}
 %.grm.sml: %.grm
 	mlyacc $<
 
+run: ${TIG_BIN}
+	@${TIG_BIN}
+
 test: ${TIG_BIN}
 	@${TIG_BIN} ${TIG_TEST_FILE}
 

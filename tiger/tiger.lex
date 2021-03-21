@@ -33,7 +33,7 @@ digits = [0-9]+;
 alpha = [a-zA-Z];
 alphas = {alpha}+;
 strings = "\""(\\.|[^\\"])*"\"";
-newline = (\n | \r | \r\n | \n\r);
+newline = (\n|\r|\r\n |\n\r);
 %s COMMENT;
 
 %%
@@ -91,4 +91,4 @@ newline = (\n | \r | \r\n | \n\r);
 <INITIAL> {digits} =>                       (Tokens.INT(valOf (Int.fromString yytext), yypos, yypos + size yytext));
 <INITIAL> {alpha}({alpha}|{digits}|"_")* => (Tokens.ID (Symbol.symbol yytext, yypos, yypos + size(yytext)));
 <INITIAL> {strings} =>                      (Tokens.STRING(String.substring(yytext, 1, String.size(yytext) - 2), yypos, yypos + size(yytext)));
-. =>                                        (err yypos ("Illegal character '" ^ yytext ^ "' found"); linePos := yypos :: !linePos; eof());
+. =>                                        (err yypos ("Illegal character '" ^ yytext ^ "' found, Ignoring it."); linePos := yypos :: !linePos; lex());

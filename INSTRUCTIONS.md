@@ -15,5 +15,7 @@ Useful Make options
 
 3. tests: This target runs all the test files in the tests/ directory except the custom.tig and writes the output ast to tig_test.out with each ast below its corresponding file name.
 
-4. clean: Cleans all the generated files.
+4. run: This target can be used to pass input to tiger from the terminal.
+
+5. clean: Cleans all the generated files.
 ```
