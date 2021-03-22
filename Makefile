@@ -4,6 +4,7 @@ TIG_TEST_DIR := tests/
 TIG_TEST_FILE := tests/custom.tig
 TIG_TEST_OUT := tig_test.out
 TIG_GEN := $(addprefix tiger/, *.grm.sml *.lex.sml *.grm.desc *.grm.sig)
+TIG_TEST_SCRIPT := tig_test.sh
 
 .PHONY: all clean tests test
 
@@ -33,7 +34,7 @@ tests: ${TIG_BIN} | permissions
 	@echo "Check ${TIG_TEST_OUT} for the outputs, each file's ast is below the respective input file name."
 
 permissions:
-	$(chmod +x ${TIG_TESTS})
+	@chmod u+x ${TIG_TEST_SCRIPT}
 
 clean:
 	rm -f ${TIG_BIN} ${TIG_GEN} ${TIG_TEST_OUT}

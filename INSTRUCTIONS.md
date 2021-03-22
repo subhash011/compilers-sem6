@@ -3,6 +3,7 @@
 ## Week 4 - Parser for tiger language.
 
 - All the source files are under the tiger/ directory
+- If you face any errors, please make sure the user owns the directory and the tig_test.sh has executable permissions (although the Makefile takes care of this, there might be errors if the project is not in a user owned location.)
 
 `
 Useful Make options
