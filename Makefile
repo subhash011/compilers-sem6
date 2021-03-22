@@ -1,5 +1,5 @@
 TIG_BIN := tiger/tiger
-TIG := $(addprefix tiger/, tiger.mlb ast.sml tiger.grm.sml tiger.lex.sml tiger.sml printast.sml errormsg.sml)
+TIG := $(addprefix tiger/, tiger.mlb ast.sml tiger.grm.sml tiger.lex.sml tiger.sml printast.sml errormsg.sml tiger.lex tiger.grm)
 TIG_TEST_DIR := tests/
 TIG_TEST_FILE := tests/custom.tig
 TIG_TEST_OUT := tig_test.out

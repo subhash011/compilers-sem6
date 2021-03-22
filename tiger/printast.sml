@@ -99,13 +99,13 @@ struct
     and strs_lval (Variable v) = ["Variable(", sym_name v, ")"]
         | strs_lval (Reference r) = let
                                         val {object, name} = r
-                                        val obj_val = strs_lval object
+                                        val obj_val = ["LvalExp("] @ strs_lval object @ [")"]
                                     in
                                         ["Reference({object = "] @ obj_val @ [", name = ", sym_name name] @ ["})"]
                                     end
         | strs_lval (ArrayAccess a) =   let
                                             val {object, index} = a
-                                            val obj_val = strs_lval object
+                                            val obj_val = ["LvalExp("] @ strs_lval object @ [")"]
                                             val index_val = strs_exp index
                                         in
                                             ["ArrayAccess({object = "] @ obj_val @ [", index = "] @ index_val @ ["})"]
