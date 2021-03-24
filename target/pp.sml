@@ -1,10 +1,12 @@
-structure PrintAST =
-struct
+structure PP :
+sig
+   val compile : Tiger.ast -> unit
+end = struct
     open Tiger;
     fun sym_name s = Symbol.name s
     and print_str s = TextIO.output (TextIO.stdOut, s)
-    and print_strs [] = []
-        | print_strs (x::xs) = (print_str x) :: (print_strs xs)
+    and strs [] = ""
+        | strs (x::xs) = x ^ (strs xs)
 
     and strs_exp (Array a) =    let
                                     val {type_, length, init} = a
@@ -221,6 +223,5 @@ struct
     and strs_ast (Expr exp) = (["Expr("] @ strs_exp exp @ [")"] @ ["\n"])
         | strs_ast (Decs decs) = (["Decs(["] @ strs_decs decs @ ["])"] @ ["\n"])
 
-    and print_ast a = print_strs (strs_ast a);
-
+    and compile a = print_str (strs (strs_ast a));
 end

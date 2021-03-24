@@ -1,10 +1,13 @@
-TIG_BIN := tiger/tiger
-TIG := $(addprefix tiger/, tiger.mlb ast.sml tiger.grm.sml tiger.lex.sml tiger.sml printast.sml errormsg.sml tiger.lex tiger.grm)
+TIG_BIN := ./tc
+TIG := $(wildcard tiger/*) $(wildcard target/*)
+TIG_PARSE := $(addprefix tiger/, *.grm.sml *.lex.sml)
 TIG_TEST_DIR := tests/
 TIG_TEST_FILE := tests/custom.tig
 TIG_TEST_OUT := tig_test.out
 TIG_GEN := $(addprefix tiger/, *.grm.sml *.lex.sml *.grm.desc *.grm.sig)
 TIG_TEST_SCRIPT := tig_test.sh
+TARGET := $(wildcard target/*)
+
 
 .PHONY: all clean tests test
 
@@ -13,8 +16,8 @@ all: ${TIG_BIN}
 	@echo "Binary file for tiger written to tiger/tiger"
 	@echo "=============================================\n"
 
-${TIG_BIN}: ${TIG}
-	mlton -output $@ $<
+${TIG_BIN}: ${TIG} ${TIG_PARSE}
+	mlton -output $@ tc.mlb
 
 %.lex.sml: %.lex
 	mllex $<

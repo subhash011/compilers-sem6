@@ -18,7 +18,7 @@ val thisLexer = case CommandLine.arguments() of
 
 fun print_error (s, pos1:int, pos2: int) = (ErrorMsg.error pos2 s);
 
-val (program,_) = TigerParser.parse (0, thisLexer, print_error,  ()) (* parsing *)
-val _           = (PrintAST.print_ast program)
+val (program,_) = TigerParser.parse (0, thisLexer, print_error,  ())
+val _           = (PP.compile program)
 
 end
