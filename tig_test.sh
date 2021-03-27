@@ -8,6 +8,6 @@ $(echo "Test Directory: ${test_dir}" >> $test_out)
 $(echo "" >> $test_out)
 for file in $tigs; do
     $(echo - $(basename $file) >> $test_out)
-    ./$2 $file >> $test_out 2>&1
+    ./$2 -P $file >> $test_out 2>&1
     $(echo "" >> $test_out)
 done

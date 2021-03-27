@@ -84,7 +84,7 @@ fun x _ = 1;
         | ObjCreate     of Tiger.TypeId
         | FunctionCall  of {name: Tiger.id, args: Tiger.Exp list}
         | MethodCall    of {object: Tiger.Lvalue, name: Tiger.id, args: Tiger.Exp list}
-        | Negate        of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
+        | Negate        of Tiger.Exp
         | Op            of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
         | Assignment    of {object: Tiger.Lvalue, exp: Tiger.Exp}
         | IfElse        of {cond: Tiger.Exp, succ: Tiger.Exp, fail: Tiger.Exp option}
@@ -141,7 +141,7 @@ Exp: NIL                                                                (Tiger.N
     | Array                                                             (Tiger.Array Array)
     | Record                                                            (Tiger.Record Record)
     | LvalTail                                                          (Tiger.LvalExp LvalTail)
-    | Negate                                                            (Tiger.Op Negate)
+    | Negate                                                            (Tiger.Negate Negate)
     | Op                                                                (Tiger.Op Op)
     | Assignment                                                        (Tiger.Assignment Assignment)
     | IfElse                                                            (Tiger.IfElse IfElse)
@@ -184,7 +184,7 @@ Decs:                                                                   ([])
     | Dec Decs                                                          (Dec :: Decs)
     | Dec SEMI_COLON Decs                                               (Dec :: Decs)
 
-Negate: MINUS Exp %prec UMINUS                                          ({left = Tiger.Int 0, oper = Tiger.Minus, right = Exp})
+Negate: MINUS Exp %prec UMINUS                                          (Exp)
 
 Array: ID LSQUARE Exp RSQUARE OF Exp                                    ({type_ = ID, length = Exp1 , init = Exp2})
 

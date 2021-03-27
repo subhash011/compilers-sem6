@@ -33,7 +33,7 @@ digits = [0-9]+;
 alpha = [a-zA-Z];
 alphas = {alpha}+;
 strings = "\""(\\.|[^\\"])*"\"";
-newline = (\n|\r|\r\n |\n\r);
+newline = (\n|\r|\r\n|\n\r);
 %s COMMENT;
 
 %%
