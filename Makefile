@@ -35,7 +35,7 @@ run: ${TIG_BIN}
 	@${TIG_BIN}
 
 test: ${TIG_BIN}
-	@${TIG_BIN} ${TIG_CUSTOM_TEST}
+	@${TIG_BIN} -P ${TIG_CUSTOM_TEST}
 
 
 tests: ${TIG_BIN} | permissions
