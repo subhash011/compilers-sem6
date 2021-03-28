@@ -46,38 +46,66 @@ end = struct
                                         end
         | strs_exp (IfElse ie) ind =    let
                                             val {cond, succ, fail} = ie
-                                            val cond_val = strs_exp cond 0
+                                            val cond_val = (case cond of
+                                                            Exps [] => []
+                                                            | Exps e => strs_exps e 0
+                                                            | _ => strs_exp cond 0)
                                             val succ_val = strs_exp succ (ind + 4)
                                         in
                                             case fail of
                                             SOME t =>   spaces ind @ ["if ("] @ cond_val @ [")\n"]
-                                                        @ spaces ind @ ["then\n"]
-                                                        @ succ_val @ ["\n"]
-                                                        @ spaces ind @ ["else\n"]
-                                                        @ (strs_exp t (ind + 4))
+                                                        @
+                                                        (case succ of
+                                                        Exps _  =>  spaces ind @ ["then (\n"]
+                                                                    @ succ_val @ ["\n"] @ spaces ind @ [")\n"]
+                                                        | _     =>  spaces ind @ ["then\n"]
+                                                                    @ succ_val @ ["\n"]
+                                                        )
+                                                        @
+                                                        (case t of
+                                                           Exps _ =>    spaces ind @ ["else (\n"]
+                                                                        @ strs_exp t (ind + 4) @ ["\n"] @ spaces ind @ [")"]
+                                                            | _ =>  spaces ind @ ["else\n"]
+                                                                    @ (strs_exp t (ind + 4))
+                                                        )
                                             | NONE =>   spaces ind @ ["if ("] @ cond_val @ [")\n"]
-                                                        @ spaces ind @ ["then\n"]
-                                                        @ succ_val
+                                                        @
+                                                        (case succ of
+                                                        Exps _  =>  spaces ind @ ["then (\n"]
+                                                                    @ succ_val @ ["\n"] @ spaces ind @ [")"]
+                                                        | _     =>  spaces ind @ ["then\n"]
+                                                                    @ succ_val @ ["\n"]
+                                                        )
                                         end
         | strs_exp (While w) ind =  let
                                     val {cond, body} = w
-                                    val cond_val = cond_expr cond
+                                    val cond_val = (case cond of
+                                                    Exps [] => []
+                                                    | Exps e => strs_exps e 0
+                                                    | _ => strs_exp cond 0)
                                     val body_val = strs_exp body (ind + 4)
                                 in
-                                    spaces ind @ ["while ("] @ cond_val @ [") do (\n"]
-                                    @ body_val @ ["\n"]
-                                    @ spaces ind @ [")"]
+                                    spaces ind @ ["while ("] @ cond_val @ [") do "]
+                                    @
+                                    (case body of
+                                       Exps _ => ["(\n"] @ body_val @ ["\n"] @ spaces ind @ [")"]
+                                     | _ => ["\n"] @ body_val)
                                 end
         | strs_exp (For f) ind =    let
                                         val {init, exit_cond, body} = f
                                         val {name, exp} = init
-                                        val exp = strs_exp exp 0
+                                        val exp = (case exp of
+                                            Exps [] => []
+                                            | Exps _ => ["("] @ strs_exp exp 0 @ [")"]
+                                            | _ => strs_exp exp 0)
                                         val exit_val = strs_exp exit_cond 0
                                         val body_val = strs_exp body (ind + 4)
                                     in
-                                        spaces ind @ ["for (", sym_name name, " := "] @ exp @ [" to "] @ exit_val @ [" do (\n"]
-                                        @ body_val @ ["\n"]
-                                        @ spaces ind @ [")"]
+                                        spaces ind @ ["for (", sym_name name, " := "] @ exp @ [" to "] @ exit_val @ [" do "]
+                                        @
+                                        (case body of
+                                           Exps _ => [" (\n"] @ body_val @ ["\n"] @ spaces ind @ [")"]
+                                         | _ => ["\n"] @ body_val)
                                     end
         | strs_exp Break ind = ["Break"]
         | strs_exp (Let l) ind =    let
@@ -236,6 +264,7 @@ end = struct
 
     and cond_exps [] = []
         | cond_exps (x::xs) = strs_exp x 0 @ cond_exps xs
+
     and cond_expr (Exps e) = cond_exps e
         | cond_expr e = strs_exp e 0
 
