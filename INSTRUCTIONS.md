@@ -25,16 +25,19 @@ Useful Make options
 
 - This lab has some changes to the file structure and the binary produced.
 
-`
-Binary file
-`
+`Binary file`
+
+
 - The final output is in the root directory of the project.
 ```
-1. Use './tc -H' for help on how to run the binary.
-2. To print the AST use './tc -A filename'
-3. To pretty print the source code use './tc -P filename'
+1. Use './tc -h' for help on how to run the binary.
+2. To print the AST use './tc -a filename'
+3. To pretty print the source code use './tc -p filename'
+4. To pretty print the source code along with syntax highlighting, use './tc -pc filename'
 ```
 
 `Makefile`
 
-All the options in the Makefile remain the same, except that now the targets test and tests pretty print the source code instead of the ast. If you want to print the AST of a file run the binary with the -A flag mentioned above.
+The targets 'test' and 'tests' work differently as follows:
+1. test: This target pretty prints the tests/custom.tig file along with syntax highlighting.
+2. tests: This target does a two way check. It first converts the source code to AST, then it converts the AST to pretty printed source code and it converts the resulting source code to AST again (this helps in veryfying that the AST -> source and source -> AST conversions are valid.) This target outputs the resulting source code (without syntax highlighting) to the tig_test.out file which also contains the errors if any.

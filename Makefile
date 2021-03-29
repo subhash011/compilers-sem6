@@ -51,7 +51,7 @@ tests: ${TIG_BIN} ${TIG_TESTS}
 	@echo "" >> ${TIG_TEST_OUT}
 
 setup_out:
-	@rm ${TIG_TEST_OUT}
+	@rm -f ${TIG_TEST_OUT}
 	@echo "Test Directory - ${TIG_TEST_DIR}\n" >> ${TIG_TEST_OUT}
 
 clean:

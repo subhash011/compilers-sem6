@@ -40,3 +40,5 @@
 - Pretty printer added.
 - File structure changes, moved tiger/tiger.sml to tc.sml
 - Command line flags introduced to choose the output of the compiler.
+- Changes made to Makefile to test validity of converstion from source -> AST and AST to source.
+- Removed the tig_test.sh script, instead moved to Makefile which also gives immediated results of tests.
