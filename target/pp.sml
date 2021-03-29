@@ -6,19 +6,19 @@ end = struct
     val toColor: bool ref = ref false;
     val nc = "\027[0m";
     fun kw t = case !toColor of
-                true => "\027[0;35m" ^ t ^ nc
+                true => "\027[38;2;197;134;192m" ^ t ^ nc
                 | false => t
     and var t = case !toColor of
-                true => "\027[0;34m" ^ t ^ nc
+                true => "\027[38;2;220;220;170m" ^ t ^ nc
                 | false => t
     and fcall t = case !toColor of
-                true => "\027[0;34m" ^ t ^ nc
+                true => "\027[38;2;86;156;214m" ^ t ^ nc
                 | false => t
     and num t = case !toColor of
-                true => "\027[0;32m" ^ t ^ nc
+                true => "\027[38;2;181;206;168m" ^ t ^ nc
                 | false => t
     and str t = case !toColor of
-                true => "\027[0;36m" ^ t ^ nc
+                true => "\027[38;2;206;145;120m" ^ t ^ nc
                 | false => t
     and sym_name s = Symbol.name s
     and spaces 0 = [""]
@@ -73,7 +73,7 @@ end = struct
                                             val succ_val = strs_exp succ (ind + 4)
                                         in
                                             case fail of
-                                            SOME t =>   spaces ind @ [kw "if ("] @ cond_val @ [")\n"]
+                                            SOME t =>   spaces ind @ [kw "if", " ("] @ cond_val @ [")\n"]
                                                         @
                                                         (case succ of
                                                         Exps _  =>  spaces ind @ [kw "then", " (\n"]
@@ -195,7 +195,7 @@ end = struct
 
     and strs_classfield (AttrDec a) ind =   let
                                             val {name, type_, init} = a
-                                            val exp = strs_exp init ind
+                                            val exp = strs_exp init 0
                                         in
                                             case type_ of
                                             SOME t => spaces ind @ [kw "var ", var (sym_name name), " := ", sym_name t, " = "] @ exp
@@ -229,11 +229,11 @@ end = struct
                                 end
         | strs_dec (ClassDec c) ind =   let
                                         val {name, extends, classfields} = c
-                                        val cfs = ["["] @  strs_classfields classfields ind @ ["]"]
+                                        val cfs = strs_classfields classfields (ind + 4)
                                     in
                                         case extends of
-                                        SOME e => ([kw "class ", var (sym_name name), ", ", kw "extends ", var (sym_name e), " {\n"] @ cfs @ ["\n}"])
-                                        | NONE => ([kw "class ", var (sym_name name), " {\n"] @ cfs @ ["\n}"])
+                                        SOME e => (spaces ind @ [kw "class ", var (sym_name name), ", ", kw "extends ", var (sym_name e), " {\n"] @ cfs @ ["\n"] @ spaces ind @ ["}"])
+                                        | NONE => (spaces ind @ [kw "class ", var (sym_name name), " {\n"] @ cfs @ ["\n"] @ spaces ind @ ["}"])
                                     end
 
         | strs_dec (TypeDec t) ind =    let

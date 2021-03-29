@@ -1,40 +1,24 @@
 let
-    var N := 8
-    type intArray = array of int
-    var row := intArray[N] of 0
-    var col := intArray[N] of 0
-    var diag1 := intArray[N + N - 1] of 0
-    var diag2 := intArray[N + N - 1] of 0
-    function printboard() = (
-        for i := 0 to N - 1 do  (
-            for j := 0 to N - 1 do
-                print(if (col[i] = j)
-then
-    " O"
-else
-    " .");
-            print("\n")
-        );
-        print("\n")
-    )
-    function try(c: int) = (
-        if (c = N)
-        then
-            printboard()
-        else
-            for r := 0 to N - 1 do
-                if (row[r] = 0 & diag1[r + c] = 0 & diag2[r + 7 - c] = 0)
-                then (
-                    row[r] := 1;
-                    diag1[r + c] := 1;
-                    diag2[r + 7 - c] := 1;
-                    col[c] := r;
-                    try(c + 1);
-                    row[r] := 0;
-                    diag1[r + c] := 0;
-                    diag2[r + 7 - c] := 0
-                )
-    )
-in
-    arr [0] of 4
-end
+    var a := 42
+    function m() = print("m()\n")
+
+    class C
+    {
+      var a := 51
+      method m() = print("C.m()\n")
+
+      method print_a()      = (print_int(a); print("\n"))
+      method print_self_a() = (print_int(self.a); print("\n"))
+
+      method call_m()      = m()
+      method call_self_m() = self.m()
+    }
+
+    var c := new C
+  in
+    c.print_a();       /* Print `42'.  */
+    c.print_self_a();  /* Print `51'.  */
+
+    c.call_m();        /* Print `m()'.  */
+    c.call_self_m()    /* Print `C.m()'.  */
+  end
