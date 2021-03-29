@@ -20,3 +20,21 @@ Useful Make options
 
 5. clean: Cleans all the generated files.
 ```
+
+## Week 5 - Pretty Printer
+
+- This lab has some changes to the file structure and the binary produced.
+
+`
+Binary file
+`
+- The final output is in the root directory of the project.
+```
+1. Use './tc -H' for help on how to run the binary.
+2. To print the AST use './tc -A filename'
+3. To pretty print the source code use './tc -P filename'
+```
+
+`Makefile`
+
+All the options in the Makefile remain the same, except that now the targets test and tests pretty print the source code instead of the ast. If you want to print the AST of a file run the binary with the -A flag mentioned above.

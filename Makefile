@@ -11,8 +11,9 @@ SRC :=	$(addprefix tiger/, ast.sml errormsg.sml symbol.sml tiger.grm tiger.lex) 
 
 # Test cases.
 TIG_TEST_DIR := tests/
-TIG_TEST_SCRIPT := ./tig_test.sh
 TIG_CUSTOM_TEST := tests/custom.tig
+TIG_TESTS := $(filter-out ${TIG_CUSTOM_TEST}, $(wildcard tests/*))
+TIG_TEST_SCRIPT := ./tig_test.sh
 TIG_TEST_OUT := tig_test.out
 
 # Files to be cleaned.
@@ -35,15 +36,23 @@ run: ${TIG_BIN}
 	@${TIG_BIN}
 
 test: ${TIG_BIN}
-	@${TIG_BIN} -P ${TIG_CUSTOM_TEST}
+	@${TIG_BIN} -pc ${TIG_CUSTOM_TEST}
 
 
-tests: ${TIG_BIN} | permissions
-	$(shell ${TIG_TEST_SCRIPT} ${TIG_TEST_DIR} ${TIG_BIN} ${TIG_TEST_OUT})
-	@echo "Check ${TIG_TEST_OUT} for the outputs, each file's ast is below the respective input file name."
+tests: ${TIG_BIN} ${TIG_TESTS}
+	@echo "Check ${TIG_TEST_OUT} for the outputs or error logs."
 
-permissions:
-	@chmod u+x ${TIG_TEST_SCRIPT}
+%.tig: ${TIG_BIN} | setup_out
+	@echo - $(notdir $@) >> ${TIG_TEST_OUT}
+	@${TIG_BIN} -p $@ >> ${TIG_TEST_OUT} 2>&1||:
+	@-${TIG_BIN} -p $@ 2>/dev/null | ${TIG_BIN} > /dev/null 2>&1 \
+	&& (echo "$(notdir $@) .... \033[0;32mOK\033[0m"; exit 0) \
+	|| (echo "$(notdir $@) .... \033[0;31mFAIL\033[0m"; exit 0)
+	@echo "" >> ${TIG_TEST_OUT}
+
+setup_out:
+	@rm ${TIG_TEST_OUT}
+	@echo "Test Directory - ${TIG_TEST_DIR}\n" >> ${TIG_TEST_OUT}
 
 clean:
 	rm -f ${CLEAN}

@@ -35,3 +35,8 @@
 - tiger.mlb puts together are the files for compiling with mlton.
 - tests/ directory contains all the testcases from the implementation of the appel book.
 - removed src directory created in the first lab since it was causing confusions.
+
+## Week - 5
+- Pretty printer added.
+- File structure changes, moved tiger/tiger.sml to tc.sml
+- Command line flags introduced to choose the output of the compiler.
