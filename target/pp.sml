@@ -209,12 +209,14 @@ end = struct
                                         val exp = strs_exp body (ind + 4)
                                     in
                                         case ret of
-                                        SOME t =>   spaces ind @ [kw what, " ", var (sym_name name), "("] @ tyfields @ [")"] @ [": ", sym_name t] @ [" = (\n"]
-                                                    @ exp @ ["\n"]
-                                                    @ spaces ind @ [")"]
-                                        | NONE =>   spaces ind @ [kw what, " ", var (sym_name name), "("] @ tyfields @ [")"] @ [" = (\n"]
-                                                    @ exp @ ["\n"]
-                                                    @ spaces ind @ [")"]
+                                        SOME t =>   spaces ind @ [kw what, " ", var (sym_name name), "("] @ tyfields @ [")"] @ [": ", sym_name t] @ [" = "]
+                                                    @ (case body of
+                                                       Exps e => ["(\n"] @ exp @ ["\n"] @ spaces ind @ [")"]
+                                                     | e => ["\n"] @ exp)
+                                        | NONE =>   spaces ind @ [kw what, " ", var (sym_name name), "("] @ tyfields @ [") = "]
+                                                    @ (case body of
+                                                       Exps _ => ["(\n"] @ exp @ ["\n"] @ spaces ind @ [")"]
+                                                     | e => ["\n"] @ exp)
                                     end
 
     and strs_dec (VarDec v) ind =   let
