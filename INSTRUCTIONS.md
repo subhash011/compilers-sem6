@@ -35,6 +35,7 @@ Useful Make options
 3. To pretty print the source code use './tc -p filename'
 4. To pretty print the source code along with syntax highlighting, use './tc -pc filename'
 ```
+Note: The binary file 'tc' needs atleast one valid flag to run.
 
 `Makefile`
 

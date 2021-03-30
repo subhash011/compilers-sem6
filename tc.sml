@@ -13,22 +13,6 @@ struct
     fun makeTigerLexer strm = TigerParser.makeLexer (fn n => TextIO.inputN(strm,n))
     val makeFileLexer      = makeTigerLexer o TextIO.openIn
 
-    fun setFlags () = case CommandLine.arguments() of
-                    [] => (toCol := true; true)
-                    | (x::_) => let
-                                    val p = String.isSubstring "p" x
-                                    val a = String.isSubstring "a" x
-                                    val c = String.isSubstring "c" x
-                                    val h = String.isSubstring "h" x
-                                in
-                                    if (not p) andalso (not a) andalso (not c) andalso (not h)
-                                    then false
-                                    else
-                                        if p andalso a
-                                        then false
-                                        else (toCol := c; pp := p; true)
-                                end
-
     val helpString = "usage: ./tc [OPTIONS] file\n\n\
                     \OPTIONS\n\
                     \------\n\
@@ -40,6 +24,23 @@ struct
                     \2. ./tc -p file => pretty print 'file' without syntax highlighting\n\
                     \3. ./tc -a file => print the ast of the 'file'\n\
                     \4. ./tc => live editor in terminal, output is pretty printed code with syntax highlighting\n"
+
+    fun setFlags () = case CommandLine.arguments() of
+                    [] => (toCol := true; true)
+                    | (x::_) => let
+                                    val p = String.isSubstring "p" x
+                                    val a = String.isSubstring "a" x
+                                    val c = String.isSubstring "c" x
+                                    val h = String.isSubstring "h" x
+                                in
+                                    if ((not p) andalso (not a) andalso (not c) andalso (not h))
+                                        orelse (not (String.isPrefix "-" x))
+                                    then false
+                                    else
+                                        if p andalso a
+                                        then false
+                                        else (toCol := c; pp := p; true)
+                                end
 
     val thisLexer = case CommandLine.arguments() of
             []  => (makeTigerLexer TextIO.stdIn)
