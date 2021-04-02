@@ -17,7 +17,8 @@ TIG_TEST_SCRIPT := ./tig_test.sh
 TIG_TEST_OUT := tig_test.out
 
 # Files to be cleaned.
-CLEAN := $(addprefix tiger/, *.grm.sml *.lex.sml *.grm.desc *.grm.sig) ${TIG_BIN} ${TIG_TEST_OUT}
+CLEAN := 	$(addprefix tiger/, *.grm.sml *.lex.sml *.grm.desc *.grm.sig) ${TIG_BIN} ${TIG_TEST_OUT} \
+			$(shell find -type d -name *.cm)
 
 .PHONY: all clean tests test
 
@@ -55,4 +56,4 @@ setup_out:
 	@echo "Test Directory - ${TIG_TEST_DIR}\n" >> ${TIG_TEST_OUT}
 
 clean:
-	rm -f ${CLEAN}
+	rm -rf ${CLEAN}
