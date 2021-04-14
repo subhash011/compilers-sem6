@@ -14,28 +14,28 @@ struct
     datatype ast = Expr of Exp
             | Decs of Dec list
 
-    and Exp = Nil
-            | Int of int
-            | String of string
-            | Array of {type_: TypeId, length: Exp, init: Exp}
-            | Record of {type_: TypeId, init: {name: id, value: Exp} list}
+    and Exp = NilExp
+            | IntExp of int
+            | StringExp of string
+            | ArrayExp of {type_: TypeId, length: Exp, init: Exp}
+            | RecordExp of {type_: TypeId, init: {name: id, value: Exp} list}
             | New of TypeId
             | LvalExp of Lvalue
             | FunctionCall of {name: id, args: Exp list}
             | MethodCall of {object: Lvalue, name: id, args: Exp list}
             | Negate of Exp
-            | Op of {left: Exp, oper: BinOp, right: Exp}
-            | Exps of Exp list
-            | Assignment of {object: Lvalue, exp: Exp}
-            | IfElse of {cond: Exp, succ: Exp, fail: Exp option}
-            | While of {cond: Exp, body: Exp}
-            | For of {init: {name: id, exp: Exp}, exit_cond: Exp, body: Exp}
-            | Break
-            | Let of {decs: Dec list, body: Exp list}
+            | OpExp of {left: Exp, oper: BinOp, right: Exp}
+            | SeqExp of Exp list
+            | AssignExp of {object: Lvalue, exp: Exp}
+            | IfElseExp of {cond: Exp, succ: Exp, fail: Exp option}
+            | WhileExp of {cond: Exp, body: Exp}
+            | ForExp of {init: {name: id, exp: Exp}, exit_cond: Exp, body: Exp}
+            | BreakExp
+            | LetExp of {decs: Dec list, body: Exp list}
 
-    and Lvalue = Variable of id
-            | Reference of {object: Lvalue, name: id}
-            | ArrayAccess of {object: Lvalue, index: Exp}
+    and Lvalue = SimpleVar of id
+            | FieldVar of {object: Lvalue, name: id}
+            | SubscriptVar of {object: Lvalue, index: Exp}
 
     and BinOp = Plus
             | Minus

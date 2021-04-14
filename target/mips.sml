@@ -145,7 +145,7 @@ struct
 
     and ExceptionTrap = RetFromException
                             | Syscall
-                            | Break
+                            | BreakExp
                             | NoOp
 
     (* For the tiger language to have syscall for print statements, some of these assembler

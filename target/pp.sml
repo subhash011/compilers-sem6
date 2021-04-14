@@ -25,14 +25,14 @@ end = struct
         | spaces i = [" "] @ (spaces (i - 1))
     and print_str s = TextIO.output (TextIO.stdOut, s)
 
-    and strs_exp (Array a) ind =    let
+    and strs_exp (ArrayExp a) ind =    let
                                         val {type_, length, init} = a
                                     in
                                         spaces ind @ [var (sym_name type_), "["]  @ (strs_exp length 0) @ ["]", kw " of "] @ (strs_exp init 0)
                                     end
-        | strs_exp (Int i) ind = spaces ind @ ([num (Int.toString i)])
-        | strs_exp (String s) ind = spaces ind @  ([str ("\"" ^ s  ^ "\"")])
-        | strs_exp (Record r) ind = let
+        | strs_exp (IntExp i) ind = spaces ind @ ([num (Int.toString i)])
+        | strs_exp (StringExp s) ind = spaces ind @  ([str ("\"" ^ s  ^ "\"")])
+        | strs_exp (RecordExp r) ind = let
                                     val {type_, init} = r
                                     val init_terms = get_records_init init
                                 in
@@ -54,21 +54,21 @@ end = struct
                                             spaces ind @ obj_val @ [".", fcall (sym_name name)] @ ["("] @ args_val @ [")"]
                                         end
         | strs_exp (Negate n) ind = spaces ind @ ["-"] @ (strs_exp n ind)
-        | strs_exp (Exps e) ind =   strs_exps e (ind)
-        | strs_exp (Assignment a) ind =     let
+        | strs_exp (SeqExp e) ind =   strs_exps e (ind)
+        | strs_exp (AssignExp a) ind =     let
                                             val {object, exp} = a
                                             val obj_val = strs_lval object 0
                                             val exp = (case exp of
-                                                        Exps e => ["(\n"] @ strs_exps e (ind + 4) @ ["\n"] @ spaces ind @ [")"]
+                                                        SeqExp e => ["(\n"] @ strs_exps e (ind + 4) @ ["\n"] @ spaces ind @ [")"]
                                                         | _ => strs_exp exp 0)
                                         in
                                             spaces ind @ obj_val @ [" := "] @ exp
                                         end
-        | strs_exp (IfElse ie) ind =    let
+        | strs_exp (IfElseExp ie) ind =    let
                                             val {cond, succ, fail} = ie
                                             val cond_val = (case cond of
-                                                            Exps [] => []
-                                                            | Exps e => strs_exps e 0
+                                                            SeqExp [] => []
+                                                            | SeqExp e => strs_exps e 0
                                                             | _ => strs_exp cond 0)
                                             val succ_val = strs_exp succ (ind + 4)
                                         in
@@ -76,14 +76,14 @@ end = struct
                                             SOME t =>   spaces ind @ [kw "if", " ("] @ cond_val @ [")\n"]
                                                         @
                                                         (case succ of
-                                                        Exps _  =>  spaces ind @ [kw "then", " (\n"]
+                                                        SeqExp _  =>  spaces ind @ [kw "then", " (\n"]
                                                                     @ succ_val @ ["\n"] @ spaces ind @ [")\n"]
                                                         | _     =>  spaces ind @ [kw "then", "\n"]
                                                                     @ succ_val @ ["\n"]
                                                         )
                                                         @
                                                         (case t of
-                                                           Exps _ =>    spaces ind @ [kw "else", " (\n"]
+                                                           SeqExp _ =>    spaces ind @ [kw "else", " (\n"]
                                                                         @ strs_exp t (ind + 4) @ ["\n"] @ spaces ind @ [")"]
                                                             | _ =>  spaces ind @ [kw "else", "\n"]
                                                                     @ (strs_exp t (ind + 4))
@@ -91,32 +91,32 @@ end = struct
                                             | NONE =>   spaces ind @ [kw "if", " ("] @ cond_val @ [")\n"]
                                                         @
                                                         (case succ of
-                                                        Exps _  =>  spaces ind @ [kw "then", " (\n"]
+                                                        SeqExp _  =>  spaces ind @ [kw "then", " (\n"]
                                                                     @ succ_val @ ["\n"] @ spaces ind @ [")"]
                                                         | _     =>  spaces ind @ [kw "then\n"]
                                                                     @ succ_val @ ["\n"]
                                                         )
                                         end
-        | strs_exp (While w) ind =  let
+        | strs_exp (WhileExp w) ind =  let
                                     val {cond, body} = w
                                     val cond_val = (case cond of
-                                                    Exps [] => []
-                                                    | Exps e => strs_exps e 0
+                                                    SeqExp [] => []
+                                                    | SeqExp e => strs_exps e 0
                                                     | _ => strs_exp cond 0)
                                     val body_val = strs_exp body (ind + 4)
                                 in
                                     spaces ind @ [kw "while "] @ cond_val @ [kw " do "]
                                     @
                                     (case body of
-                                       Exps _ => ["(\n"] @ body_val @ ["\n"] @ spaces ind @ [")"]
+                                       SeqExp _ => ["(\n"] @ body_val @ ["\n"] @ spaces ind @ [")"]
                                      | _ => ["\n"] @ body_val)
                                 end
-        | strs_exp (For f) ind =    let
+        | strs_exp (ForExp f) ind =    let
                                         val {init, exit_cond, body} = f
                                         val {name, exp} = init
                                         val exp = (case exp of
-                                            Exps [] => []
-                                            | Exps _ => ["("] @ strs_exp exp 0 @ [")"]
+                                            SeqExp [] => []
+                                            | SeqExp _ => ["("] @ strs_exp exp 0 @ [")"]
                                             | _ => strs_exp exp 0)
                                         val exit_val = strs_exp exit_cond 0
                                         val body_val = strs_exp body (ind + 4)
@@ -124,11 +124,11 @@ end = struct
                                         spaces ind @ [kw "for ", sym_name name, " := "] @ exp @ [kw " to "] @ exit_val @ [kw " do "]
                                         @
                                         (case body of
-                                           Exps _ => [" (\n"] @ body_val @ ["\n"] @ spaces ind @ [")"]
+                                           SeqExp _ => [" (\n"] @ body_val @ ["\n"] @ spaces ind @ [")"]
                                          | _ => ["\n"] @ body_val)
                                     end
-        | strs_exp Break ind = [kw "break"]
-        | strs_exp (Let l) ind =    let
+        | strs_exp BreakExp ind = [kw "break"]
+        | strs_exp (LetExp l) ind =    let
                                     val {decs, body} = l
                                     val decs_val = strs_decs decs (ind + 4)
                                     val body_val = strs_exps body (ind + 4)
@@ -139,13 +139,13 @@ end = struct
                                     @ body_val @ ["\n"]
                                     @ spaces ind @ [kw "end"]
                                 end
-        | strs_exp (Op operation) ind = let
+        | strs_exp (OpExp operation) ind = let
                                         val {left, oper, right} = operation
                                         val opval = (get_op oper)
                                     in
                                          spaces ind @ (strs_exp left 0) @ opval @ (strs_exp right 0)
                                     end
-        | strs_exp Nil ind = spaces ind @ [kw "nil"]
+        | strs_exp NilExp ind = spaces ind @ [kw "nil"]
 
     and get_op Plus = [" + "]
         | get_op Minus = [" - "]
@@ -160,14 +160,14 @@ end = struct
         | get_op And = [" & "]
         | get_op Or = [" | "]
 
-    and strs_lval (Variable v) ind = spaces ind @ [var (sym_name v)]
-        | strs_lval (Reference r) ind = let
+    and strs_lval (SimpleVar v) ind = spaces ind @ [var (sym_name v)]
+        | strs_lval (FieldVar r) ind = let
                                         val {object, name} = r
                                         val obj_val = strs_lval object ind
                                     in
                                         obj_val @ [".", var (sym_name name)]
                                     end
-        | strs_lval (ArrayAccess a) ind =   let
+        | strs_lval (SubscriptVar a) ind =   let
                                             val {object, index} = a
                                             val obj_val = strs_lval object ind
                                             val index_val = strs_exp index 0
@@ -211,18 +211,18 @@ end = struct
                                         case ret of
                                         SOME t =>   spaces ind @ [kw what, " ", var (sym_name name), "("] @ tyfields @ [")"] @ [": ", sym_name t] @ [" = "]
                                                     @ (case body of
-                                                       Exps e => ["(\n"] @ exp @ ["\n"] @ spaces ind @ [")"]
+                                                       SeqExp e => ["(\n"] @ exp @ ["\n"] @ spaces ind @ [")"]
                                                      | e => ["\n"] @ exp)
                                         | NONE =>   spaces ind @ [kw what, " ", var (sym_name name), "("] @ tyfields @ [") = "]
                                                     @ (case body of
-                                                       Exps _ => ["(\n"] @ exp @ ["\n"] @ spaces ind @ [")"]
+                                                       SeqExp _ => ["(\n"] @ exp @ ["\n"] @ spaces ind @ [")"]
                                                      | e => ["\n"] @ exp)
                                     end
 
     and strs_dec (VarDec v) ind =   let
                                     val {name, type_, init} = v;
                                     val exp = (case init of
-                                                Exps e => ["(\n"] @ strs_exps e (ind + 4) @ ["\n"] @ spaces ind @ [")"]
+                                                SeqExp e => ["(\n"] @ strs_exps e (ind + 4) @ ["\n"] @ spaces ind @ [")"]
                                                 | _ => strs_exp init 0)
                                 in
                                     case type_ of
@@ -289,7 +289,7 @@ end = struct
     and cond_exps [] = []
         | cond_exps (x::xs) = strs_exp x 0 @ cond_exps xs
 
-    and cond_expr (Exps e) = cond_exps e
+    and cond_expr (SeqExp e) = cond_exps e
         | cond_expr e = strs_exp e 0
 
     and strs_exps [] ind = spaces ind @ ["(", ")"]

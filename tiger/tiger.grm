@@ -71,12 +71,12 @@ fun x _ = 1;
 
 %nonterm Program        of Tiger.ast
         | Exp           of Tiger.Exp
-        | Exps          of Tiger.Exp list
+        | SeqExp          of Tiger.Exp list
         | CallArgs      of Tiger.Exp list
         | Dec           of Tiger.Dec
         | Decs          of Tiger.Dec list
-        | Array         of {type_: Tiger.TypeId, length: Tiger.Exp, init: Tiger.Exp}
-        | Record        of {type_: Tiger.TypeId, init: {name: Tiger.id, value: Tiger.Exp} list}
+        | ArrayExp         of {type_: Tiger.TypeId, length: Tiger.Exp, init: Tiger.Exp}
+        | RecordExp        of {type_: Tiger.TypeId, init: {name: Tiger.id, value: Tiger.Exp} list}
         | RecordField   of {name: Tiger.id, value: Tiger.Exp}
         | RecordFields  of {name: Tiger.id, value: Tiger.Exp} list
         | LvalExp       of Tiger.Lvalue
@@ -85,13 +85,13 @@ fun x _ = 1;
         | FunctionCall  of {name: Tiger.id, args: Tiger.Exp list}
         | MethodCall    of {object: Tiger.Lvalue, name: Tiger.id, args: Tiger.Exp list}
         | Negate        of Tiger.Exp
-        | Op            of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
-        | Assignment    of {object: Tiger.Lvalue, exp: Tiger.Exp}
-        | IfElse        of {cond: Tiger.Exp, succ: Tiger.Exp, fail: Tiger.Exp option}
-        | While         of {cond: Tiger.Exp, body: Tiger.Exp}
-        | For           of {init: {name: Tiger.id, exp: Tiger.Exp}, exit_cond: Tiger.Exp, body: Tiger.Exp}
-        | Let           of {decs: Tiger.Dec list, body: Tiger.Exp list}
-        | Variable      of Tiger.id
+        | OpExp            of {left: Tiger.Exp, oper: Tiger.BinOp, right: Tiger.Exp}
+        | AssignExp    of {object: Tiger.Lvalue, exp: Tiger.Exp}
+        | IfElseExp        of {cond: Tiger.Exp, succ: Tiger.Exp, fail: Tiger.Exp option}
+        | WhileExp         of {cond: Tiger.Exp, body: Tiger.Exp}
+        | ForExp           of {init: {name: Tiger.id, exp: Tiger.Exp}, exit_cond: Tiger.Exp, body: Tiger.Exp}
+        | LetExp           of {decs: Tiger.Dec list, body: Tiger.Exp list}
+        | SimpleVar      of Tiger.id
         | Type          of Tiger.Type
         | TypeDec       of {name: Tiger.id, type_: Tiger.Type}
         | ClassDec      of {name: Tiger.id, extends: Tiger.TypeId option, classfields: Tiger.ClassField list}
@@ -132,31 +132,31 @@ want else to be bound to the nearest if so we shift *)
 Program: Exp                                                            (Tiger.Expr Exp)
         | Decs                                                          (Tiger.Decs Decs)
 
-Exp: NIL                                                                (Tiger.Nil)
-    | ID                                                                (Tiger.LvalExp (Tiger.Variable ID))
-    | INT                                                               (Tiger.Int INT)
-    | STRING                                                            (Tiger.String STRING)
+Exp: NIL                                                                (Tiger.NilExp)
+    | ID                                                                (Tiger.LvalExp (Tiger.SimpleVar ID))
+    | INT                                                               (Tiger.IntExp INT)
+    | STRING                                                            (Tiger.StringExp STRING)
     | FunctionCall                                                      (Tiger.FunctionCall FunctionCall)
     | MethodCall                                                        (Tiger.MethodCall MethodCall)
-    | Array                                                             (Tiger.Array Array)
-    | Record                                                            (Tiger.Record Record)
+    | ArrayExp                                                          (Tiger.ArrayExp ArrayExp)
+    | RecordExp                                                            (Tiger.RecordExp RecordExp)
     | LvalTail                                                          (Tiger.LvalExp LvalTail)
     | Negate                                                            (Tiger.Negate Negate)
-    | Op                                                                (Tiger.Op Op)
-    | Assignment                                                        (Tiger.Assignment Assignment)
-    | IfElse                                                            (Tiger.IfElse IfElse)
-    | While                                                             (Tiger.While While)
-    | For                                                               (Tiger.For For)
-    | BREAK                                                             (Tiger.Break)
-    | Let                                                               (Tiger.Let Let)
-    | LPAREN Exps RPAREN                                                (Tiger.Exps Exps)
+    | OpExp                                                                (Tiger.OpExp OpExp)
+    | AssignExp                                                        (Tiger.AssignExp AssignExp)
+    | IfElseExp                                                            (Tiger.IfElseExp IfElseExp)
+    | WhileExp                                                             (Tiger.WhileExp WhileExp)
+    | ForExp                                                               (Tiger.ForExp ForExp)
+    | BREAK                                                             (Tiger.BreakExp)
+    | LetExp                                                               (Tiger.LetExp LetExp)
+    | LPAREN SeqExp RPAREN                                                (Tiger.SeqExp SeqExp)
     | NEW ID                                                            (Tiger.New ID)
 
-Exps:                                                                   ([])
+SeqExp:                                                                   ([])
     | Exp                                                               ([Exp])
-    | Exp SEMI_COLON Exps                                               (Exp :: Exps)
+    | Exp SEMI_COLON SeqExp                                               (Exp :: SeqExp)
 
-Op: Exp PLUS Exp                                                        ({left = Exp1, oper = Tiger.Plus, right = Exp2})
+OpExp: Exp PLUS Exp                                                        ({left = Exp1, oper = Tiger.Plus, right = Exp2})
     | Exp MINUS Exp                                                     ({left = Exp1, oper = Tiger.Minus, right = Exp2})
     | Exp MUL Exp                                                       ({left = Exp1, oper = Tiger.Mul, right = Exp2})
     | Exp DIV Exp                                                       ({left = Exp1, oper = Tiger.Div, right = Exp2})
@@ -169,16 +169,16 @@ Op: Exp PLUS Exp                                                        ({left =
     | Exp AND Exp                                                       ({left = Exp1, oper = Tiger.And, right = Exp2})
     | Exp OR Exp                                                        ({left = Exp1, oper = Tiger.Or, right = Exp2})
 
-Assignment: LvalExp ASSIGN Exp                                          ({object = LvalExp, exp = Exp})
+AssignExp: LvalExp ASSIGN Exp                                          ({object = LvalExp, exp = Exp})
 
-IfElse: IF Exp THEN Exp                                                 ({cond = Exp1, succ = Exp2, fail = NONE})
+IfElseExp: IF Exp THEN Exp                                                 ({cond = Exp1, succ = Exp2, fail = NONE})
         | IF Exp THEN Exp ELSE Exp                                      ({cond = Exp1, succ = Exp2, fail = SOME Exp3})
 
-While: WHILE Exp DO Exp                                                 ({cond = Exp1, body = Exp2})
+WhileExp: WHILE Exp DO Exp                                                 ({cond = Exp1, body = Exp2})
 
-For: FOR ID ASSIGN Exp TO Exp DO Exp                                    ({init = {name = ID, exp = Exp1}, exit_cond = Exp2, body = Exp3})
+ForExp: FOR ID ASSIGN Exp TO Exp DO Exp                                    ({init = {name = ID, exp = Exp1}, exit_cond = Exp2, body = Exp3})
 
-Let: LET Decs IN Exps END                                               ({decs = Decs, body = Exps})
+LetExp: LET Decs IN SeqExp END                                               ({decs = Decs, body = SeqExp})
 
 Decs:                                                                   ([])
     | Dec Decs                                                          (Dec :: Decs)
@@ -186,9 +186,9 @@ Decs:                                                                   ([])
 
 Negate: MINUS Exp %prec UMINUS                                          (Exp)
 
-Array: ID LSQUARE Exp RSQUARE OF Exp                                    ({type_ = ID, length = Exp1 , init = Exp2})
+ArrayExp: ID LSQUARE Exp RSQUARE OF Exp                                    ({type_ = ID, length = Exp1 , init = Exp2})
 
-Record: ID LCURLY RecordFields RCURLY                                   ({type_ = ID, init = RecordFields})
+RecordExp: ID LCURLY RecordFields RCURLY                                   ({type_ = ID, init = RecordFields})
 
 RecordFields:                                                           ([])
             | RecordField                                               ([RecordField])
@@ -196,12 +196,12 @@ RecordFields:                                                           ([])
 
 RecordField: ID EQ Exp                                                  ({name = ID, value = Exp})
 
-LvalExp: ID                                                             (Tiger.Variable ID)
+LvalExp: ID                                                             (Tiger.SimpleVar ID)
     | LvalTail                                                          (LvalTail)
 
-LvalTail: LvalExp DOT ID                                                (Tiger.Reference {object = LvalExp, name = ID})
-        | ID LSQUARE Exp RSQUARE                                        (Tiger.ArrayAccess {object = Tiger.Variable ID, index = Exp})
-        | LvalTail LSQUARE Exp RSQUARE                                  (Tiger.ArrayAccess {object = LvalTail, index = Exp})
+LvalTail: LvalExp DOT ID                                                (Tiger.FieldVar {object = LvalExp, name = ID})
+        | ID LSQUARE Exp RSQUARE                                        (Tiger.SubscriptVar {object = Tiger.SimpleVar ID, index = Exp})
+        | LvalTail LSQUARE Exp RSQUARE                                  (Tiger.SubscriptVar {object = LvalTail, index = Exp})
 
 Dec: TYPE ID EQ Type                                                    (Tiger.TypeDec {name = ID, type_ = Type})
     | VarDec                                                            (Tiger.VarDec VarDec)

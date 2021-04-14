@@ -8,18 +8,18 @@ end = struct
     and strs [] = ""
         | strs (x::xs) = x ^ (strs xs)
 
-    and strs_exp (Array a) =    let
+    and strs_exp (ArrayExp a) =    let
                                     val {type_, length, init} = a
                                 in
-                                    ["Array({type_ = ", sym_name type_, ", length = "] @ (strs_exp length) @ [", init = "] @ (strs_exp init) @ ["})"]
+                                    ["ArrayExp({type_ = ", sym_name type_, ", length = "] @ (strs_exp length) @ [", init = "] @ (strs_exp init) @ ["})"]
                                 end
-        | strs_exp (Int i) = (["Int(", Int.toString i ,")"])
-        | strs_exp (String s) = (["String(\"", s ,"\")"])
-        | strs_exp (Record r) = let
+        | strs_exp (IntExp i) = (["IntExp(", Int.toString i ,")"])
+        | strs_exp (StringExp s) = (["StringExp(\"", s ,"\")"])
+        | strs_exp (RecordExp r) = let
                                     val {type_, init} = r
                                     val init_terms = get_records_init init
                                 in
-                                    ["Record({type_ = ", sym_name type_, ", init = "] @ init_terms @ ["})"]
+                                    ["RecordExp({type_ = ", sym_name type_, ", init = "] @ init_terms @ ["})"]
                                 end
         | strs_exp (New t) = ["New(", sym_name t, ")"]
         | strs_exp (LvalExp l) =  ["LvalExp("] @ strs_lval l @ [")"]
@@ -37,53 +37,53 @@ end = struct
                                             ["MethodCall({object = "] @ obj_val @ [", name = ", sym_name name, ", args = "] @ args_val @ ["})"]
                                         end
         | strs_exp (Negate n) = (["Negate("] @ (strs_exp n) @ [")"])
-        | strs_exp (Exps e) = ["Exps(["] @  strs_exps e @ ["])"]
-        | strs_exp (Assignment a) =     let
+        | strs_exp (SeqExp e) = ["SeqExp(["] @  strs_exps e @ ["])"]
+        | strs_exp (AssignExp a) =     let
                                             val {object, exp} = a
                                             val obj_val = strs_lval object
                                         in
-                                            ["Assignment({object = "] @ obj_val @ [", exp = "] @ strs_exp exp @ ["})"]
+                                            ["AssignExp({object = "] @ obj_val @ [", exp = "] @ strs_exp exp @ ["})"]
                                         end
-        | strs_exp (IfElse ie) =    let
+        | strs_exp (IfElseExp ie) =    let
                                         val {cond, succ, fail} = ie
                                         val cond_val = strs_exp cond
                                         val succ_val = strs_exp succ
                                     in
                                         case fail of
-                                        SOME t => ["IfElse({cond = "] @ cond_val @ [", succ = "] @ succ_val @ [", fail = "] @ (strs_exp t) @ ["})"]
-                                        | NONE => ["IfElse({cond = "] @ cond_val @ [", succ = "] @ succ_val @ [", fail = NONE"] @ ["})"]
+                                        SOME t => ["IfElseExp({cond = "] @ cond_val @ [", succ = "] @ succ_val @ [", fail = "] @ (strs_exp t) @ ["})"]
+                                        | NONE => ["IfElseExp({cond = "] @ cond_val @ [", succ = "] @ succ_val @ [", fail = NONE"] @ ["})"]
                                     end
-        | strs_exp (While w) =  let
+        | strs_exp (WhileExp w) =  let
                                     val {cond, body} = w
                                     val cond_val = strs_exp cond
                                     val body_val = strs_exp body
                                 in
-                                    ["While({cond = "] @ cond_val @ [", body = "] @ body_val @ ["})"]
+                                    ["WhileExp({cond = "] @ cond_val @ [", body = "] @ body_val @ ["})"]
                                 end
-        | strs_exp (For f) =    let
+        | strs_exp (ForExp f) =    let
                                     val {init, exit_cond, body} = f
                                     val {name, exp} = init
                                     val exp = strs_exp exp
                                     val exit_val = strs_exp exit_cond
                                     val body_val = strs_exp body
                                 in
-                                    ["For({init = {name = ", sym_name name, ", exp = "] @ exp @ ["}, exit_cond = "] @ exit_val @ [", body = "] @ body_val @ ["})"]
+                                    ["ForExp({init = {name = ", sym_name name, ", exp = "] @ exp @ ["}, exit_cond = "] @ exit_val @ [", body = "] @ body_val @ ["})"]
                                 end
-        | strs_exp Break = ["Break"]
-        | strs_exp (Let l) =    let
+        | strs_exp BreakExp = ["BreakExp"]
+        | strs_exp (LetExp l) =    let
                                     val {decs, body} = l
                                     val decs_val = ["["] @  strs_decs decs @ ["]"]
                                     val body_val = ["["] @  strs_exps body @ ["]"]
                                 in
-                                    ["Let({decs = "] @ decs_val @ [", body = "] @ body_val @ ["})"]
+                                    ["LetExp({decs = "] @ decs_val @ [", body = "] @ body_val @ ["})"]
                                 end
-        | strs_exp (Op operation) = let
+        | strs_exp (OpExp operation) = let
                                         val {left, oper, right} = operation
                                         val opval = (get_op oper)
                                     in
-                                        ["Op({left = "] @ (strs_exp left) @ [", oper = "] @ opval @ [", right = "] @ (strs_exp right) @ ["})"]
+                                        ["OpExp({left = "] @ (strs_exp left) @ [", oper = "] @ opval @ [", right = "] @ (strs_exp right) @ ["})"]
                                     end
-        | strs_exp (Nil) = ["Nil"]
+        | strs_exp (NilExp) = ["NilExp"]
 
     and get_op Plus = ["Plus"]
         | get_op Minus = ["Minus"]
@@ -98,19 +98,19 @@ end = struct
         | get_op And = ["And"]
         | get_op Or = ["Or"]
 
-    and strs_lval (Variable v) = ["Variable(", sym_name v, ")"]
-        | strs_lval (Reference r) = let
+    and strs_lval (SimpleVar v) = ["SimpleVar(", sym_name v, ")"]
+        | strs_lval (FieldVar r) = let
                                         val {object, name} = r
                                         val obj_val = ["LvalExp("] @ strs_lval object @ [")"]
                                     in
-                                        ["Reference({object = "] @ obj_val @ [", name = ", sym_name name] @ ["})"]
+                                        ["FieldVar({object = "] @ obj_val @ [", name = ", sym_name name] @ ["})"]
                                     end
-        | strs_lval (ArrayAccess a) =   let
+        | strs_lval (SubscriptVar a) =   let
                                             val {object, index} = a
                                             val obj_val = ["LvalExp("] @ strs_lval object @ [")"]
                                             val index_val = strs_exp index
                                         in
-                                            ["ArrayAccess({object = "] @ obj_val @ [", index = "] @ index_val @ ["})"]
+                                            ["SubscriptVar({object = "] @ obj_val @ [", index = "] @ index_val @ ["})"]
                                         end
 
     and get_record_init r = let
