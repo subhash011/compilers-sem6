@@ -37,7 +37,7 @@ run: ${TIG_BIN}
 	@${TIG_BIN}
 
 test: ${TIG_BIN}
-	@${TIG_BIN} -pc ${TIG_CUSTOM_TEST}
+	@${TIG_BIN} --pp ${TIG_CUSTOM_TEST}
 
 
 tests: ${TIG_BIN} ${TIG_TESTS}
@@ -45,8 +45,8 @@ tests: ${TIG_BIN} ${TIG_TESTS}
 
 %.tig: ${TIG_BIN} | setup_out
 	@echo - $(notdir $@) >> ${TIG_TEST_OUT}
-	@${TIG_BIN} -p $@ >> ${TIG_TEST_OUT} 2>&1||:
-	@-${TIG_BIN} -p $@ 2>/dev/null | ${TIG_BIN} > /dev/null 2>&1 \
+	@${TIG_BIN} --fmt $@ >> ${TIG_TEST_OUT} 2>&1||:
+	@-${TIG_BIN} --fmt $@ 2>/dev/null | ${TIG_BIN} > /dev/null 2>&1 \
 	&& (echo "$(notdir $@) .... \033[0;32mOK\033[0m"; exit 0) \
 	|| (echo "$(notdir $@) .... \033[0;31mFAIL\033[0m"; exit 0)
 	@echo "" >> ${TIG_TEST_OUT}
