@@ -14,7 +14,7 @@ Short forms used:
 
 Convention:
 - srci for ith source and dest for destination
-- if they type is 'l then we are dealing with memory address and if the
+- if the type is 'l then we are dealing with memory address and if the
 type is 't then we are dealing with registers.
 
 *)
@@ -27,7 +27,7 @@ struct
     datatype Label = LUser of string
                 | LTemp of int
 
-    (* Registers 'at' and  'k' have been ignore since they are registered
+    (* Registers 'at' and  'k' have been ignored since they are registered
     for the assembler and the OS respectively. *)
     datatype Regs = Zero
             | v of int

@@ -4,7 +4,7 @@
       {
         "type": "shell",
         "label": "SML Run active file",
-        "command": "rlwrap sml ${file}",
+        "command": "rlwrap sml",
         "problemMatcher": [],
         "group": {
           "kind": "build",
