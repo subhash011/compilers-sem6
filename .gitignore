@@ -4,6 +4,6 @@ tc
 **/*.grm.sml
 **/*.grm.desc
 **/*.grm.sig
-**/*.cm
+**/*.cm/
 tiger/tiger
 *.out

@@ -6,6 +6,7 @@ TIG_PARSE := $(addprefix tiger/, *.grm.sml *.lex.sml)
 # Source files.
 SRC :=	$(addprefix tiger/, ast.sml errormsg.sml symbol.sml tiger.grm tiger.lex) \
 		$(addprefix target/, mips.sml pp.sml print_tig_ast.sml) \
+		$(addprefix ir/, canon.sml temp.sml tree.sig tree.sml) \
 		tc.sml
 
 

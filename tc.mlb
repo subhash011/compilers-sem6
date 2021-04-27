@@ -10,5 +10,9 @@ target/pp.sml
 tiger/tiger.grm.sig
 tiger/tiger.grm.sml
 tiger/tiger.lex.sml
+ir/temp.sml
+ir/tree.sig
+ir/tree.sml
+ir/canon.sml
 
 tc.sml

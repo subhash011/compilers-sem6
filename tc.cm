@@ -1,0 +1,17 @@
+Group is
+    tiger/ast.sml
+    tiger/symbol.sml
+    tiger/tiger.lex
+    tiger/errormsg.sml
+    tiger/tiger.grm
+    target/mips.sml
+    target/pp.sml
+    target/print_tig_ast.sml
+    ir/tree.sig
+    ir/tree.sml
+    ir/temp.sml 
+    ir/canon.sml
+    tc.sml
+    $/basis.cm
+    $/ml-yacc-lib.cm
+    $/smlnj-lib.cm
