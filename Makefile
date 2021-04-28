@@ -19,7 +19,7 @@ TIG_TEST_OUT := tig_test.out
 
 # Files to be cleaned.
 CLEAN := 	$(addprefix tiger/, *.grm.sml *.lex.sml *.grm.desc *.grm.sig) ${TIG_BIN} ${TIG_TEST_OUT} \
-			$(shell find -type d -name *.cm)
+			$(shell find -type d -name .cm)
 
 .PHONY: all clean tests test
 
