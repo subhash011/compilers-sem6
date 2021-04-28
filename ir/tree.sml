@@ -36,4 +36,17 @@ struct
                 | ULE 
                 | UGT 
                 | UGE
+            
+    fun notRel oper = 
+        case oper of
+            EQ => NE
+            | NE => EQ
+            | LT => GE
+            | GT => LE
+            | LE => GT
+            | GE => LT
+            | ULT => UGE
+            | ULE => UGT
+            | UGT => ULE
+            | UGE => ULT
 end

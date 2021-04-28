@@ -1,8 +1,8 @@
 Group is
+    util/symbol.sml
+    util/errormsg.sml
     tiger/ast.sml
-    tiger/symbol.sml
     tiger/tiger.lex
-    tiger/errormsg.sml
     tiger/tiger.grm
     target/mips.sml
     target/pp.sml

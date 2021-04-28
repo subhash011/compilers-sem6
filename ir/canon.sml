@@ -7,21 +7,29 @@ end
 
 structure Canon: CANON =
 struct
+
+    exception CanonisationError
+
     structure T = Tree
     
     fun linearize stm = 
         let
             val nop = T.EXP (T.CONST 0)
 
+            (* This function shortens the SEQ expression by remove unnecessary
+               sub-expressions. *)
             infix %
             fun (T.EXP(T.CONST _)) % x = x
                 | x % (T.EXP(T.CONST _)) = x
                 | x % y = T.SEQ(x,y)
 
-            and commute (T.EXP (T.CONST _), _) = true
-                | commute (_, T.NAME _) = true
-                | commute (_, T.CONST _) = true
-                | commute _ = false
+            (* All the trivial statemens commute. *)
+            and commute (stmt, exp) = 
+                case (stmt, exp) of
+                    (T.EXP (T.CONST _), _) => true
+                    | (_, T.NAME _) => true
+                    | (_, T.CONST _) => true
+                    | _ => false
             
             and reorder_stm (l, build) =    
                 let
@@ -30,22 +38,24 @@ struct
                     s1 % (build l1)
                 end
             
-            and do_stm (T.MOVE (T.TEMP t, T.CALL (e1, e2))) = 
-                    reorder_stm (e1::e2, fn e1::e2 => T.MOVE (T.TEMP t, T.CALL (e1, e2)) | _ => nop)
-                | do_stm (T.MOVE (T.TEMP t, b)) = 
-                    reorder_stm ([b], fn [b] => T.MOVE(T.TEMP t, b) | _ => nop)
-                | do_stm (T.MOVE (T.MEM e, b)) = 
-                    reorder_stm ([e, b], fn [e, b] => T.MOVE(T.MEM e, b) | _ => nop)
-                | do_stm (T.EXP (T.CALL(e1, e2))) = 
-                    reorder_stm (e1::e2, fn e1::e2 => T.EXP(T.CALL(e1, e2)) | _ => nop)
-                | do_stm (T.EXP e) = 
-                    reorder_stm ([e], fn [e] => T.EXP e | _ => nop)
-                | do_stm (T.JUMP (e, labs)) = 
-                    reorder_stm ([e], fn [e] => T.JUMP (e, labs) | _ => nop)
-                | do_stm (T.CJUMP (p, a, b, t, f)) = 
-                    reorder_stm ([a, b], fn [a, b] => T.CJUMP (p, a, b, t, f) | _ => nop)
-                | do_stm (T.SEQ (a, b)) = (do_stm a) % (do_stm b)
-                | do_stm s = reorder_stm ([], fn _ => s)
+            and do_stm stmt = 
+                case stmt of
+                    (T.MOVE (T.TEMP t, T.CALL (e1, e2))) => 
+                        reorder_stm (e1::e2, fn e1::e2 => T.MOVE (T.TEMP t, T.CALL (e1, e2)) | _ => nop)
+                    | (T.MOVE (T.TEMP t, b)) => 
+                        reorder_stm ([b], fn [b] => T.MOVE(T.TEMP t, b) | _ => nop)
+                    | (T.MOVE (T.MEM e, b)) =>
+                        reorder_stm ([e, b], fn [e, b] => T.MOVE(T.MEM e, b) | _ => nop)
+                    | (T.EXP (T.CALL(e1, e2))) => 
+                        reorder_stm (e1::e2, fn e1::e2 => T.EXP(T.CALL(e1, e2)) | _ => nop)
+                    | (T.EXP e) => 
+                        reorder_stm ([e], fn [e] => T.EXP e | _ => nop)
+                    | (T.JUMP (e, labs)) =>
+                        reorder_stm ([e], fn [e] => T.JUMP (e, labs) | _ => nop)
+                    | (T.CJUMP (p, a, b, t, f)) =>
+                        reorder_stm ([a, b], fn [a, b] => T.CJUMP (p, a, b, t, f) | _ => nop)
+                    | (T.SEQ (a, b)) => (do_stm a) % (do_stm b)
+                    | s => reorder_stm ([], fn _ => s)
 
             and reorder_exp (l, build) =    
                 let
@@ -54,21 +64,28 @@ struct
                     (s1, build l1)
                 end
             
-            and do_exp (T.BINOP (p, a, b)) = 
-                    reorder_exp ([a, b], fn [a, b] => T.BINOP (p, a, b) | _ => T.CONST 0)
-                | do_exp (T.MEM (a)) = 
-                    reorder_exp([a], fn [a] => T.MEM (a) | _ => T.CONST 0)
-                | do_exp (T.CALL (e1, e2)) = 
-                    reorder_exp (e1::e2, fn e1::e2 => T.CALL (e1, e2) | _ => T.CONST 0)
-                | do_exp (T.ESEQ (s, e)) =  
-                    let
-                        val stmts1 = do_stm s
-                        val (stmts2, e) = do_exp e
-                    in
-                        (stmts1 % stmts2, e)
-                    end
-                | do_exp e = reorder_exp ([], fn _ => e)
+            and do_exp exp = 
+                case exp of
+                    (T.BINOP (p, a, b)) =>
+                        reorder_exp ([a, b], fn [a, b] => T.BINOP (p, a, b) | _ => T.CONST 0)
+                    | (T.MEM (a)) =>
+                        reorder_exp([a], fn [a] => T.MEM (a) | _ => T.CONST 0)
+                    | (T.CALL (e1, e2)) => 
+                        reorder_exp (e1::e2, fn e1::e2 => T.CALL (e1, e2) | _ => T.CONST 0)
+                    | (T.ESEQ (s, e)) =>
+                        let
+                            val stmts1 = do_stm s
+                            val (stmts2, e) = do_exp e
+                        in
+                            (stmts1 % stmts2, e)
+                        end
+                    | e => reorder_exp ([], fn _ => e)
 
+            (*
+                reorder function makes sure CALL's return value is
+                stored in a register so that consecutive calls don't overwrite
+                each other's result.
+            *)
             and reorder ((T.CALL expr )::rest) =    
                     let
                         val e = T.CALL expr
@@ -92,6 +109,11 @@ struct
                     end
                 | reorder nil = (nop, nil)
             
+            (* 
+                Linearised expression will look like
+                SEQ (a, SEQ (b, ....)), this function converts
+                it to a list which looks like [a, b, ....]
+            *)
             and linear (T.SEQ (a, b), l) = linear (a, linear (b, l))
                 | linear (s, l) = s::l
         in
@@ -100,33 +122,119 @@ struct
 
         fun basicBlocks stmts = 
             let
-                val done = Temp.newlabel()
-                fun makeBlocks ((head as T.LABEL _)::tail, blocks) =
-                        let
-                            fun makeBlock ((s as T.JUMP _)::rest, block) = 
-                                    endBlock (rest, s::block)
-                                | makeBlock ((s as T.CJUMP _)::rest, block) = 
-                                    endBlock (rest, s::block)
-                                | makeBlock ((s as T.LABEL label)::rest, block) = 
-                                    makeBlock (T.JUMP (T.NAME label, [label])::s::rest, block)
-                                | makeBlock (s::rest, block) = 
-                                    makeBlock (rest, s::block)
-                                | makeBlock (nil, block) = 
-                                    makeBlock ([T.JUMP (T.NAME done, [done])], block)
+                
+                val done = Temp.newlabel() (* Special label for the last block. *)
 
-                            and endBlock (stmts, block) = makeBlocks (stmts, (rev block)::blocks)
-                        in
-                            makeBlock (tail, [head])
-                        end
-                    | makeBlocks (nil, blocks) = rev blocks
-                    | makeBlocks (stmts, blocks) = 
-                        let
-                            val label = T.LABEL(Temp.newlabel())
-                        in
-                            makeBlocks(label::stmts, blocks)
-                        end
-
+                (*
+                    A block would look like [LABEL ... statements .... (JUMP/CJUMP)] and
+                    the last block will be the label done.
+                *)
+                fun makeBlocks (stmts, block, blocks) = 
+                    case stmts of
+                        (* If JUMP or CJUMP, end current block and start new one. *)
+                        ((s as T.JUMP _)::rest) => 
+                            makeBlocks (rest, [], (List.rev (s::block))::blocks)
+                        | ((s as T.CJUMP _)::rest) =>
+                            makeBlocks (rest, [], (List.rev (s::block))::blocks)
+                        
+                        (* If LABEL, append JUMP instruction to the current block and start a
+                        new block. *)
+                        | ((s as T.LABEL label)::rest) =>
+                            let
+                                val jmp = T.JUMP (T.NAME label, [label])
+                            in
+                                makeBlocks (rest, [s], (List.rev (jmp::block))::blocks)
+                            end
+                        (* If its neither a label or a branch instruction, add it current block
+                        and continue. *)
+                        | (s::rest) => makeBlocks (rest, s::block, blocks)
+                        (* If there are no more statements, add jump instruction to done label,
+                        reverse the list and return it. *)
+                        | [] => let
+                                    val jmp = T.JUMP (T.NAME done, [done])
+                                in
+                                    List.rev (List.rev (jmp::block)::blocks)
+                                end
             in
-                (makeBlocks (stmts, nil), done)
+                case stmts of
+                    (* If we see label, start making blocks *)
+                    ((s as T.LABEL _)::rest) => (makeBlocks (rest, [s], nil), done)
+                    (* If we don't see a label, add a new label and start. *)
+                    | (s::rest) => 
+                        let
+                            val label = T.LABEL (Temp.newlabel())
+                        in
+                            (makeBlocks (rest, [label], nil), done)
+                        end
+                    (* If no statements, return done label. *)
+                    | nil => (makeBlocks (nil, nil, nil), done)
+                        
+                    
+            end
+        
+        fun traceSchedule (blocks, done) = 
+            let
+                fun addBlocksToTable blocks = List.foldr addBlockToTable Symbol.empty blocks
+                (* Add the given block to the Map in Symbol. *)
+                and addBlockToTable (block, table) =
+                    case block of
+                        (block as (T.LABEL label::_)) => Symbol.enter (table, label, block)
+                       | _ => table
+                
+                fun splitList l =
+                    let
+                        val lastIndex = List.length l - 1
+                        val first = List.take (l, lastIndex)
+                        val last = List.nth (l, lastIndex)
+                    in
+                        (first, last)
+                    end
+                
+                fun runTrace (block as (T.LABEL label::_), rest, table) = 
+                    let
+                        val table = Symbol.enter (table, label, nil)
+                    in
+                        case splitList block of
+                            (* If the last instruction is JUMP and if the block to be jumped to
+                            is not yet seen, append here to reduce JUMP instructions. *)
+                            (first, T.JUMP (T.NAME label, _)) =>
+                                (case (Symbol.look (table, label)) of
+                                    SOME (next as _::_) => first @ runTrace (next, rest, table)
+                                    | _ => block @ pickBlock (rest, table))
+                            (* If the last instruction is CJUMP try adding the false block after
+                            the current block. *)
+                            | (first, T.CJUMP (oper, a, b, succ, fail)) => 
+                                (case (Symbol.look (table, succ), Symbol.look (table, fail)) of
+                                    (_, SOME (fb as _::_)) => block @ runTrace (fb, rest, table)
+                                    | (SOME (sb as _::_), _) =>
+                                        let
+                                            val cjmp = T.CJUMP(T.notRel oper, a, b, fail, succ)
+                                        in
+                                            first @ [cjmp] @ runTrace (sb, rest, table)
+                                        end
+                                    | _ => 
+                                        let
+                                            val l = Temp.newlabel()
+                                            val cjmp = T.CJUMP(oper, a, b, succ, l)
+                                        in
+                                            first @ [cjmp, T.LABEL l, T.JUMP (T.NAME fail, [fail])]
+                                                 @ pickBlock (rest, table)
+                                        end)
+                            | (first, T.JUMP _) => block @ pickBlock (rest, table)
+                            | _ => raise CanonisationError
+                    end
+                    | runTrace _ = raise CanonisationError
+
+                (* Pick a block to perform trace on and return the trace. *)
+                and pickBlock (block::rest, table) = 
+                    (case block of
+                        (T.LABEL label::_) =>
+                            (case Symbol.look (table, label) of
+                                SOME (block as _::_) => runTrace (block, rest, table)
+                                | _ => pickBlock (rest, table))
+                        | _ => raise CanonisationError)
+                    | pickBlock (nil, table) = nil
+            in
+                pickBlock (blocks, addBlocksToTable blocks) @ [T.LABEL done]
             end
 end

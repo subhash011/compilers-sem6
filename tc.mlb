@@ -2,9 +2,9 @@ $(SML_LIB)/basis/basis.mlb
 $(SML_LIB)/mlyacc-lib/mlyacc-lib.mlb
 $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
 
-tiger/symbol.sml
+util/symbol.sml
+util/errormsg.sml
 tiger/ast.sml
-tiger/errormsg.sml
 target/print_tig_ast.sml
 target/pp.sml
 tiger/tiger.grm.sig

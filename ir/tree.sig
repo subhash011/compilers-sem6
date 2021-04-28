@@ -36,5 +36,8 @@ sig
                 | ULE 
                 | UGT 
                 | UGE
-    
+
+    (* Used for negating expression in CJUMP. *)
+    val notRel: relop -> relop
+
 end
