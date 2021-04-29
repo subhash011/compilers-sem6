@@ -7,6 +7,10 @@
 - Lab 3: 9d11ced8f7bf2e1304ea6a183ca7a0119bdf240a 
 
 
+### 29-04-2021
+- Added translate.sml
+- Completed adding structures are conversion functions for translate.sml
+
 ### 28-04-2021
 - Added structures for Tree IR.
 - Added algorithm for canonisation.

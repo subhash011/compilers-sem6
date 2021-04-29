@@ -9,7 +9,8 @@ Group is
     target/print_tig_ast.sml
     ir/tree.sig
     ir/tree.sml
-    ir/temp.sml 
+    ir/temp.sml
+    ir/translate.sml
     ir/canon.sml
     tc.sml
     $/basis.cm

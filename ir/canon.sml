@@ -110,7 +110,7 @@ struct
                 | reorder nil = (nop, nil)
             
             (* 
-                Linearised expression will look like
+                Linearised expression might look like
                 SEQ (a, SEQ (b, ....)), this function converts
                 it to a list which looks like [a, b, ....]
             *)

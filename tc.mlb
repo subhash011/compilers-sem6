@@ -13,6 +13,7 @@ tiger/tiger.lex.sml
 ir/temp.sml
 ir/tree.sig
 ir/tree.sml
+ir/translate.sml
 ir/canon.sml
 
 tc.sml
