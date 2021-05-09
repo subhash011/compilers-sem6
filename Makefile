@@ -4,10 +4,10 @@ TIG_BIN := ./tc
 TIG_PARSE := $(addprefix tiger/, *.grm.sml *.lex.sml)
 
 # Source files.
-SRC :=	$(addprefix tiger/, ast.sml tiger.grm tiger.lex) \
-		$(addprefix target/, mips.sml pp.sml print_tig_ast.sml) \
-		$(addprefix ir/, canon.sml temp.sml tree.sig tree.sml translate.sml) \
-		$(addprefix util/, errormsg.sml symbol.sml) \
+SRC :=	$(wildcard tiger/*.sml) $(addprefix tiger/, tiger.grm tiger.lex) \
+		$(wildcard target/*.sml) \
+		$(wildcard ir/*.sml) \
+		$(wildcard util/*.sml) \
 		tc.sml
 
 
@@ -25,6 +25,9 @@ CLEAN := 	$(addprefix tiger/, *.grm.sml *.lex.sml *.grm.desc *.grm.sig) ${TIG_BI
 .PHONY: all clean tests test
 
 all: ${TIG_BIN}
+
+log:
+	@echo ${SRC}
 
 ${TIG_BIN}: ${SRC} ${TIG_PARSE}
 	mlton -output $@ tc.mlb

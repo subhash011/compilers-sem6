@@ -6,7 +6,7 @@ Group is
     tiger/tiger.grm
     target/mips.sml
     target/pp.sml
-    target/print_tig_ast.sml
+    target/print_ast.sml
     ir/tree.sig
     ir/tree.sml
     ir/temp.sml

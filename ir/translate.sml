@@ -65,8 +65,7 @@ struct
                 (* If none, compare e and 1 and jump accordingly *)
                 | _ => (fn (succ, fail) => T.CJUMP (T.EQ, e, T.CONST 1, succ, fail)))
         | unCx (Cx func) = func
-        (* The below case is not needed for a well typed tiger language. *)
-        | unCx (Nx s) = raise NotWellTyped
+        | unCx (e as Nx s) = unCx (Ex (unEx e))
 
 
 end
