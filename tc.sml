@@ -7,6 +7,7 @@ struct
     val ast = ref false;
     val ir = ref true;
     val can = ref false;
+    exception InvalidArgument
 
     
 
@@ -38,13 +39,22 @@ struct
                     \5. ./tc --can file => print the canonised IR of the source in the 'file'\n\
                     \6. ./tc file=> Same as \"./tc --pp file\"\n"
 
+    fun setFlag s =
+        case s of
+            "--pp" => (fmt := true; toCol := true; ast := false; ir := false; can := false)
+            | "--ast" => (fmt := false; toCol := false; ast := true; ir := false; can := false)
+            | "--fmt" => (fmt := true; toCol := false; ast := false; ir := false; can := false)
+            | "--ir" => (fmt := false; toCol := false; ast := false; ir := true; can := false)
+            | "--can" => (fmt := false; toCol := false; ast := false; ir := true; can := true)
+            | _ => raise InvalidArgument
+
     fun setFlags [] = true
         | setFlags (x::xs) =   case x of
-                                "--pp" => (fmt := true; toCol := true; ast := false; ir := false; can := false; setFlags xs)
-                                | "--ast" => (fmt := false; toCol := false; ast := true; ir := false; can := false; setFlags xs)
-                                | "--fmt" => (fmt := true; toCol := false; ast := false; ir := false; can := false; setFlags xs)
-                                | "--ir" => (fmt := false; toCol := false; ast := false; ir := true; can := false; setFlags xs)
-                                | "--can" => (fmt := false; toCol := false; ast := false; ir := true; can := true; setFlags xs)
+                                "--pp" => (setFlag x; setFlags xs)
+                                | "--ast" => (setFlag x; setFlags xs)
+                                | "--fmt" => (setFlag x; setFlags xs)
+                                | "--ir" => (setFlag x; setFlags xs)
+                                | "--can" => (setFlag x; setFlags xs)
                                 | str => (if !fileName = "" then (fileName := str; setFlags xs) else false)
 
     fun failExit() =    (TextIO.output(TextIO.stdErr, helpString); 
@@ -53,7 +63,12 @@ struct
     val thisLexer = case CommandLine.arguments() of
             []  => (makeTigerLexer TextIO.stdIn)
             | ["--help"] => (TextIO.output (TextIO.stdOut, helpString); OS.Process.exit OS.Process.success)
-            |   [x] => (ErrorMsg.fileName := #file (OS.Path.splitDirFile x); fmt := false; makeFileLexer x)
+            | ["--ast"] => (setFlag "--ast"; makeTigerLexer TextIO.stdIn)
+            | ["--pp"] => (setFlag "--pp"; makeTigerLexer TextIO.stdIn)
+            | ["--fmt"] => (setFlag "--fmt"; makeTigerLexer TextIO.stdIn)
+            | ["--ir"] => (setFlag "--ir"; makeTigerLexer TextIO.stdIn)
+            | ["--can"] => (setFlag "--can"; makeTigerLexer TextIO.stdIn)
+            |   [x]      => (setFlag "--ir"; makeFileLexer x)
             |   ls =>   let
                             val parseSuccess = setFlags ls
                             val file = !fileName
@@ -71,7 +86,8 @@ struct
     fun printCanon [] = ()
         | printCanon (x::xs) = (Printtree.printtree (TextIO.stdOut, x); printCanon xs; ())
 
-    val (program,_) = TigerParser.parse (0, thisLexer, print_error,  ());
+    fun printBasicBlocs [] = ()
+        | printBasicBlocs (x::xs) = (printCanon x; printBasicBlocs xs)
 
     fun getIR program = Translate.translate program
 
@@ -80,32 +96,50 @@ struct
             val ir = getIR program
             val linearised = Canon.linearize ir
             val basicBlocks = Canon.basicBlocks linearised
-            val traceSchedule = Canon.traceSchedule basicBlocks
+            (* val traceSchedule = Canon.traceSchedule basicBlocks *)
         in
-            traceSchedule
+            (* basicBlocks *)
+            linearised
+            (* traceSchedule *)
         end
 
     fun getIRCM () = 
         let
             val (program,_) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ());
         in
-            getIR program
+            printIR (getIR program)
         end
     
     fun getCanonCM () = 
         let
             val (program,_) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ());
+            (* val (basicBlocks, label) = getCanon program *)
         in
-            getCanon program
+            (* (printBasicBlocs basicBlocks; print (Symbol.name label)) *)
+            printCanon (getCanon program)
         end
 
-    val _           =   if !fmt 
-                        then (PP.compile program (!toCol); ()) 
-                        else if !ast
-                        then (PrintAST.print program; ())
-                        else if !ir
-                        then printIR (getIR program)
-                        else if !can
-                        then printCanon (getCanon program)
-                        else ()
+    fun CM s =
+        case s of
+            "can" => getCanonCM ()
+            | "ir" => getIRCM ()
+            | "ast" =>
+                let
+                    val (program, _) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ())
+                in
+                    PrintAST.print program
+                end
+            | _ => raise InvalidArgument
+
+    (* val (program,_) = TigerParser.parse (0, thisLexer, print_error, ());
+
+    val _   =   if !fmt 
+            then (PP.compile program (!toCol); ()) 
+            else if !ast
+            then (PrintAST.print program; ())
+            else if !ir
+            then printIR (getIR program)
+            else if !can
+            then printCanon (getCanon program)
+            else () *)
 end

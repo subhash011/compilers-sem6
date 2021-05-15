@@ -164,7 +164,7 @@ struct
                     let
                         val label = T.LABEL (Temp.newlabel())
                     in
-                        (makeBlocks (rest, [label], nil), done)
+                        (makeBlocks (stmts, [label], nil), done)
                     end
                 (* If no statements, return done label. *)
                 | nil => (makeBlocks (nil, nil, nil), done)
@@ -232,9 +232,11 @@ struct
                         (case Symbol.look (table, label) of
                             SOME (block as _::_) => runTrace (block, rest, table)
                             | _ => pickBlock (rest, table))
+                    | nil => nil
                     | _ => raise CanonisationError)
                 | pickBlock (nil, table) = nil
+            val table = addBlocksToTable blocks
         in
-            pickBlock (blocks, addBlocksToTable blocks) @ [T.LABEL done]
+            pickBlock (blocks, table) @ [T.LABEL done]
         end
 end
