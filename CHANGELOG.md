@@ -1,10 +1,10 @@
 # Changelog
 
 ## Git commit hashes
-- Lab 6: 5b3c2fd0b76ae55b2baaacf0bac56fa103d14425
-- Lab 5: db9ec061dff475798f312874df9d4c3c08612519
-- Lab 4: ff7e944fdae54ff0c9d32877d207f701544cd458
-- Lab 3: 9d11ced8f7bf2e1304ea6a183ca7a0119bdf240a 
+- Lab 6: 
+- Lab 5: 5b3c2fd0b76ae55b2baaacf0bac56fa103d14425
+- Lab 4: db9ec061dff475798f312874df9d4c3c08612519
+- Lab 3: ff7e944fdae54ff0c9d32877d207f701544cd458
 
 
 ### 29-04-2021
