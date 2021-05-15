@@ -1,4 +1,9 @@
 let
+    var a := 1
+in
+    
+end
+/* let
     var a := 42
     function m() = print("m()\n")
 
@@ -21,4 +26,4 @@ let
 
     c.call_m();        /* Print `m()'.  */
     c.call_self_m()    /* Print `C.m()'.  */
-  end
+  end */

@@ -2,6 +2,7 @@ $(SML_LIB)/basis/basis.mlb
 $(SML_LIB)/mlyacc-lib/mlyacc-lib.mlb
 $(SML_LIB)/smlnj-lib/Util/smlnj-lib.mlb
 
+util/table.sml
 util/symbol.sml
 util/errormsg.sml
 tiger/ast.sml
@@ -13,6 +14,7 @@ tiger/tiger.lex.sml
 ir/temp.sml
 ir/tree.sig
 ir/tree.sml
+ir/printtree.sml
 ir/translate.sml
 ir/canon.sml
 

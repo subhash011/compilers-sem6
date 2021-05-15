@@ -7,3 +7,4 @@ tc
 **/*.cm/
 tiger/tiger
 *.out
+backup/

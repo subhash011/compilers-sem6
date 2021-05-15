@@ -120,121 +120,121 @@ struct
             linear (do_stm stm, nil)
         end
 
-        fun basicBlocks stmts = 
-            let
-                
-                val done = Temp.newlabel() (* Special label for the last block. *)
+    fun basicBlocks stmts = 
+        let
+            
+            val done = Temp.newlabel() (* Special label for the last block. *)
 
-                (*
-                    A block would look like [LABEL ... statements .... (JUMP/CJUMP)] and
-                    the last block will be the label done.
-                *)
-                fun makeBlocks (stmts, block, blocks) = 
-                    case stmts of
-                        (* If JUMP or CJUMP, end current block and start new one. *)
-                        ((s as T.JUMP _)::rest) => 
-                            makeBlocks (rest, [], (List.rev (s::block))::blocks)
-                        | ((s as T.CJUMP _)::rest) =>
-                            makeBlocks (rest, [], (List.rev (s::block))::blocks)
-                        
-                        (* If LABEL, append JUMP instruction to the current block and start a
-                        new block. *)
-                        | ((s as T.LABEL label)::rest) =>
-                            let
-                                val jmp = T.JUMP (T.NAME label, [label])
-                            in
-                                makeBlocks (rest, [s], (List.rev (jmp::block))::blocks)
-                            end
-                        (* If its neither a label or a branch instruction, add it current block
-                        and continue. *)
-                        | (s::rest) => makeBlocks (rest, s::block, blocks)
-                        (* If there are no more statements, add jump instruction to done label,
-                        reverse the list and return it. *)
-                        | [] => let
-                                    val jmp = T.JUMP (T.NAME done, [done])
-                                in
-                                    List.rev (List.rev (jmp::block)::blocks)
-                                end
-            in
+            (*
+                A block would look like [LABEL ... statements .... (JUMP/CJUMP)] and
+                the last block will be the label done.
+            *)
+            fun makeBlocks (stmts, block, blocks) = 
                 case stmts of
-                    (* If we see label, start making blocks *)
-                    ((s as T.LABEL _)::rest) => (makeBlocks (rest, [s], nil), done)
-                    (* If we don't see a label, add a new label and start. *)
-                    | (s::rest) => 
-                        let
-                            val label = T.LABEL (Temp.newlabel())
-                        in
-                            (makeBlocks (rest, [label], nil), done)
-                        end
-                    (* If no statements, return done label. *)
-                    | nil => (makeBlocks (nil, nil, nil), done)
-                        
+                    (* If JUMP or CJUMP, end current block and start new one. *)
+                    ((s as T.JUMP _)::rest) => 
+                        makeBlocks (rest, [], (List.rev (s::block))::blocks)
+                    | ((s as T.CJUMP _)::rest) =>
+                        makeBlocks (rest, [], (List.rev (s::block))::blocks)
                     
-            end
-        
-        fun traceSchedule (blocks, done) = 
-            let
-                fun addBlocksToTable blocks = List.foldr addBlockToTable Symbol.empty blocks
-                (* Add the given block to the Map in Symbol. *)
-                and addBlockToTable (block, table) =
-                    case block of
-                        (block as (T.LABEL label::_)) => Symbol.enter (table, label, block)
-                       | _ => table
-                
-                fun splitList l =
+                    (* If LABEL, append JUMP instruction to the current block and start a
+                    new block. *)
+                    | ((s as T.LABEL label)::rest) =>
+                        let
+                            val jmp = T.JUMP (T.NAME label, [label])
+                        in
+                            makeBlocks (rest, [s], (List.rev (jmp::block))::blocks)
+                        end
+                    (* If its neither a label or a branch instruction, add it current block
+                    and continue. *)
+                    | (s::rest) => makeBlocks (rest, s::block, blocks)
+                    (* If there are no more statements, add jump instruction to done label,
+                    reverse the list and return it. *)
+                    | [] => let
+                                val jmp = T.JUMP (T.NAME done, [done])
+                            in
+                                List.rev (List.rev (jmp::block)::blocks)
+                            end
+        in
+            case stmts of
+                (* If we see label, start making blocks *)
+                ((s as T.LABEL _)::rest) => (makeBlocks (rest, [s], nil), done)
+                (* If we don't see a label, add a new label and start. *)
+                | (s::rest) => 
                     let
-                        val lastIndex = List.length l - 1
-                        val first = List.take (l, lastIndex)
-                        val last = List.nth (l, lastIndex)
+                        val label = T.LABEL (Temp.newlabel())
                     in
-                        (first, last)
+                        (makeBlocks (rest, [label], nil), done)
                     end
+                (* If no statements, return done label. *)
+                | nil => (makeBlocks (nil, nil, nil), done)
+                    
                 
-                fun runTrace (block as (T.LABEL label::_), rest, table) = 
-                    let
-                        val table = Symbol.enter (table, label, nil)
-                    in
-                        case splitList block of
-                            (* If the last instruction is JUMP and if the block to be jumped to
-                            is not yet seen, append here to reduce JUMP instructions. *)
-                            (first, T.JUMP (T.NAME label, _)) =>
-                                (case (Symbol.look (table, label)) of
-                                    SOME (next as _::_) => first @ runTrace (next, rest, table)
-                                    | _ => block @ pickBlock (rest, table))
-                            (* If the last instruction is CJUMP try adding the false block after
-                            the current block. *)
-                            | (first, T.CJUMP (oper, a, b, succ, fail)) => 
-                                (case (Symbol.look (table, succ), Symbol.look (table, fail)) of
-                                    (_, SOME (fb as _::_)) => block @ runTrace (fb, rest, table)
-                                    | (SOME (sb as _::_), _) =>
-                                        let
-                                            val cjmp = T.CJUMP(T.notRel oper, a, b, fail, succ)
-                                        in
-                                            first @ [cjmp] @ runTrace (sb, rest, table)
-                                        end
-                                    | _ => 
-                                        let
-                                            val l = Temp.newlabel()
-                                            val cjmp = T.CJUMP(oper, a, b, succ, l)
-                                        in
-                                            first @ [cjmp, T.LABEL l, T.JUMP (T.NAME fail, [fail])]
-                                                 @ pickBlock (rest, table)
-                                        end)
-                            | (first, T.JUMP _) => block @ pickBlock (rest, table)
-                            | _ => raise CanonisationError
-                    end
-                    | runTrace _ = raise CanonisationError
+        end
+    
+    fun traceSchedule (blocks, done) = 
+        let
+            fun addBlocksToTable blocks = List.foldr addBlockToTable Symbol.empty blocks
+            (* Add the given block to the Map in Symbol. *)
+            and addBlockToTable (block, table) =
+                case block of
+                    (block as (T.LABEL label::_)) => Symbol.enter (table, label, block)
+                    | _ => table
+            
+            fun splitList l =
+                let
+                    val lastIndex = List.length l - 1
+                    val first = List.take (l, lastIndex)
+                    val last = List.nth (l, lastIndex)
+                in
+                    (first, last)
+                end
+            
+            fun runTrace (block as (T.LABEL label::_), rest, table) = 
+                let
+                    val table = Symbol.enter (table, label, nil)
+                in
+                    case splitList block of
+                        (* If the last instruction is JUMP and if the block to be jumped to
+                        is not yet seen, append here to reduce JUMP instructions. *)
+                        (first, T.JUMP (T.NAME label, _)) =>
+                            (case (Symbol.look (table, label)) of
+                                SOME (next as _::_) => first @ runTrace (next, rest, table)
+                                | _ => block @ pickBlock (rest, table))
+                        (* If the last instruction is CJUMP try adding the false block after
+                        the current block. *)
+                        | (first, T.CJUMP (oper, a, b, succ, fail)) => 
+                            (case (Symbol.look (table, succ), Symbol.look (table, fail)) of
+                                (_, SOME (fb as _::_)) => block @ runTrace (fb, rest, table)
+                                | (SOME (sb as _::_), _) =>
+                                    let
+                                        val cjmp = T.CJUMP(T.notRel oper, a, b, fail, succ)
+                                    in
+                                        first @ [cjmp] @ runTrace (sb, rest, table)
+                                    end
+                                | _ => 
+                                    let
+                                        val l = Temp.newlabel()
+                                        val cjmp = T.CJUMP(oper, a, b, succ, l)
+                                    in
+                                        first @ [cjmp, T.LABEL l, T.JUMP (T.NAME fail, [fail])]
+                                                @ pickBlock (rest, table)
+                                    end)
+                        | (first, T.JUMP _) => block @ pickBlock (rest, table)
+                        | _ => raise CanonisationError
+                end
+                | runTrace _ = raise CanonisationError
 
-                (* Pick a block to perform trace on and return the trace. *)
-                and pickBlock (block::rest, table) = 
-                    (case block of
-                        (T.LABEL label::_) =>
-                            (case Symbol.look (table, label) of
-                                SOME (block as _::_) => runTrace (block, rest, table)
-                                | _ => pickBlock (rest, table))
-                        | _ => raise CanonisationError)
-                    | pickBlock (nil, table) = nil
-            in
-                pickBlock (blocks, addBlocksToTable blocks) @ [T.LABEL done]
-            end
+            (* Pick a block to perform trace on and return the trace. *)
+            and pickBlock (block::rest, table) = 
+                (case block of
+                    (T.LABEL label::_) =>
+                        (case Symbol.look (table, label) of
+                            SOME (block as _::_) => runTrace (block, rest, table)
+                            | _ => pickBlock (rest, table))
+                    | _ => raise CanonisationError)
+                | pickBlock (nil, table) = nil
+        in
+            pickBlock (blocks, addBlocksToTable blocks) @ [T.LABEL done]
+        end
 end

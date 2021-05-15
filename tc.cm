@@ -1,4 +1,10 @@
-Group is
+Library
+    structure TC
+    structure Tiger
+    structure Tree
+    structure Symbol
+is
+    util/table.sml
     util/symbol.sml
     util/errormsg.sml
     tiger/ast.sml
@@ -10,6 +16,7 @@ Group is
     ir/tree.sig
     ir/tree.sml
     ir/temp.sml
+    ir/printtree.sml
     ir/translate.sml
     ir/canon.sml
     tc.sml

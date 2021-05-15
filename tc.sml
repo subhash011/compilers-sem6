@@ -2,11 +2,11 @@ structure TC =
 struct
     
     val fileName = ref "";
-    val fmt = ref true;
-    val toCol = ref true;
+    val fmt = ref false;
+    val toCol = ref false;
     val ast = ref false;
-
-    val flags = {fmt = ref true, toCol = ref true, ast = ref false};
+    val ir = ref true;
+    val can = ref false;
 
     
 
@@ -25,19 +25,26 @@ struct
                     \------\n\
                     \--pp: pretty print the input source file\n\
                     \--ast: print the ast of the source file\n\
+                    \--ast: print the ast of the source file\n\
+                    \--ir : print the IR of the source file\n\
+                    \--can : print the canonised IR of the source file\n\
                     \--fmt: pretty prints the source code without syntax highlighting.\n\
                     \--help: usages for the binary.\n\n\
                     \Example usages: \n\
                     \1. ./tc --pp file => pretty print 'file' with syntax highlighting\n\
                     \2. ./tc --fmt file => pretty print 'file' without syntax highlighting\n\
                     \3. ./tc --ast file => print the ast of the 'file'\n\
-                    \4. ./tc file=> Same as \"./tc --pp file\"\n"
+                    \4. ./tc --ir file => print the IR of the source in the 'file'\n\
+                    \5. ./tc --can file => print the canonised IR of the source in the 'file'\n\
+                    \6. ./tc file=> Same as \"./tc --pp file\"\n"
 
     fun setFlags [] = true
         | setFlags (x::xs) =   case x of
-                                "--pp" => (fmt := true; toCol := true; ast := false; setFlags xs)
-                                | "--ast" => (fmt := false; toCol := false; ast := true; setFlags xs)
-                                | "--fmt" => (fmt := true; toCol := false; ast := false; setFlags xs)
+                                "--pp" => (fmt := true; toCol := true; ast := false; ir := false; can := false; setFlags xs)
+                                | "--ast" => (fmt := false; toCol := false; ast := true; ir := false; can := false; setFlags xs)
+                                | "--fmt" => (fmt := true; toCol := false; ast := false; ir := false; can := false; setFlags xs)
+                                | "--ir" => (fmt := false; toCol := false; ast := false; ir := true; can := false; setFlags xs)
+                                | "--can" => (fmt := false; toCol := false; ast := false; ir := true; can := true; setFlags xs)
                                 | str => (if !fileName = "" then (fileName := str; setFlags xs) else false)
 
     fun failExit() =    (TextIO.output(TextIO.stdErr, helpString); 
@@ -46,7 +53,7 @@ struct
     val thisLexer = case CommandLine.arguments() of
             []  => (makeTigerLexer TextIO.stdIn)
             | ["--help"] => (TextIO.output (TextIO.stdOut, helpString); OS.Process.exit OS.Process.success)
-            |   [x] => (ErrorMsg.fileName := #file (OS.Path.splitDirFile x); makeFileLexer x)
+            |   [x] => (ErrorMsg.fileName := #file (OS.Path.splitDirFile x); fmt := false; makeFileLexer x)
             |   ls =>   let
                             val parseSuccess = setFlags ls
                             val file = !fileName
@@ -54,13 +61,51 @@ struct
                             if parseSuccess
                             then (ErrorMsg.fileName := #file (OS.Path.splitDirFile file); makeFileLexer (file))
                             else failExit()
+
                         end
 
     fun print_error (s, pos1:int, pos2: int) = (ErrorMsg.error pos2 s);
+    
+    fun printIR x = Printtree.printtree (TextIO.stdOut, x)
+    
+    fun printCanon [] = ()
+        | printCanon (x::xs) = (Printtree.printtree (TextIO.stdOut, x); printCanon xs; ())
+
     val (program,_) = TigerParser.parse (0, thisLexer, print_error,  ());
+
+    fun getIR program = Translate.translate program
+
+    fun getCanon program =
+        let
+            val ir = getIR program
+            val linearised = Canon.linearize ir
+            val basicBlocks = Canon.basicBlocks linearised
+            val traceSchedule = Canon.traceSchedule basicBlocks
+        in
+            traceSchedule
+        end
+
+    fun getIRCM () = 
+        let
+            val (program,_) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ());
+        in
+            getIR program
+        end
+    
+    fun getCanonCM () = 
+        let
+            val (program,_) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ());
+        in
+            getCanon program
+        end
+
     val _           =   if !fmt 
                         then (PP.compile program (!toCol); ()) 
                         else if !ast
                         then (PrintAST.print program; ())
+                        else if !ir
+                        then printIR (getIR program)
+                        else if !can
+                        then printCanon (getCanon program)
                         else ()
 end
