@@ -45,7 +45,7 @@ struct
             | "--ast" => (fmt := false; toCol := false; ast := true; ir := false; can := false)
             | "--fmt" => (fmt := true; toCol := false; ast := false; ir := false; can := false)
             | "--ir" => (fmt := false; toCol := false; ast := false; ir := true; can := false)
-            | "--can" => (fmt := false; toCol := false; ast := false; ir := true; can := true)
+            | "--can" => (fmt := false; toCol := false; ast := false; ir := false; can := true)
             | _ => raise InvalidArgument
 
     fun setFlags [] = true
