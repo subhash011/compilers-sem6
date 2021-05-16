@@ -131,7 +131,7 @@ struct
                 end
             | _ => raise InvalidArgument
 
-    (* val (program,_) = TigerParser.parse (0, thisLexer, print_error, ());
+    val (program,_) = TigerParser.parse (0, thisLexer, print_error, ());
 
     val _   =   if !fmt 
             then (PP.compile program (!toCol); ()) 
@@ -141,5 +141,5 @@ struct
             then printIR (getIR program)
             else if !can
             then printCanon (getCanon program)
-            else () *)
+            else ()
 end
