@@ -1,0 +1,2385 @@
+* DONE Introduction                                               :CLASSROOM:
+** Compilers
+
+Programs that translate from one programming language to another.
+
+Source language Lₛ -> target Lₜ
+
+The source language is a high level language and the target language
+is a low-level language (machine language)
+
+You have used
+
+- gcc, clang :: The C language compiler
+- mlton :: The compiler for SML
+
+*** Challenges of build a compiler
+
+1. Compilers are "big" programs, comparable to OS, Firfox browser etc.
+
+2. Lot of effort is required to target a particular machine efficiently
+
+First high-level language compiler (Fortran) Backus et. al. Got him
+the Turing award and it is worth 18 man years of work.
+
+Technology has improved. We expect you to write a compiler in 1
+semester course project. Within a few weeks you can implement a
+compiler.
+
+
+*** Example
+
+The reverse-polish compiler that takes expressions and generate its
+reverse polish representation (postfix notation).
+
+The input is normal expressions (Lₛ) the source language The output
+is the expression in reverse polish (Lₜ) the target language
+
+
+
+(2 + 3) * 4 does it mean first add 2 and 3 then multiply 4 or does it
+              mean first multiply 3 and 4 then add 2 to it
+
+1. You put brackets to make it explicit
+2. You have precedence rules.
+
+
+AST or abstract syntax tree (Programming language theory terminology)
+or parse tree (compiler terminology) represents programs in your
+language as a tree. This means we do not need to capture many things
+like brackets etc in AST.
+
+  #+BEGIN_EXAMPLE
+  E -> N
+    |  E + E
+    |  E * E
+    | ( E )   (* this is not considered *)
+
+  #+END_EXAMPLE
+
+
+
+*** Stages of a compiler
+
+input file ->  compiler -> output excecutable
+
+compiler : string -> string
+
+But you consider the compiler as
+
+compiler : ast of Lₛ -> ast of Lₜ
+
+
+Phases
+
+- Parsing :: string -> ast of Lₛ
+
+- Syntax directed translation, Code Gen :: ast of Lₛ -> ast of Lₜ
+
+- Code Emit :: ast Lₜ -> string
+
+
+string -> Lₛ -> L₁ -> L₂ -> L₃ -> .....-> Lₙ -> Lₜ -> string
+
+The L₁,..., Lₙ are called IR (intermediate representation).
+
+
+
+- Front end of the compiler is the paring stage.
+
+  Lₛ -> L₁
+
+
+- Backend of the compiler is the code generation stage.
+
+  L₁ -> ....  Lₜ -> String (backend of the compiler)
+
+
+Parsing string -> list of tokens -> AST
+
+(1) Lexical analysis is conversion from string to list of tokens
+
+(2) Syntax analysis : list of tokens to ASt is (also) called parsing
+
+* TODO Parsing                                                    :CLASSROOM:
+
+** What is it ?
+
+- Abstract syntax (tree) of the language (Parse tree in the Compiler literature)
+
+- Concrete syntax (grammar in Compiler literature)
+
+
+Compiler needs the program from the user. User gives it as a string (inside a file)
+
+Abstract Syntax tree is the way in which the compiler stores it.
+
+#+BEGIN_EXAMPLE
+
+E -> Nats
+  -> E + E
+  -> E * E
+
+#+END_EXAMPLE
+
+This is the complete abstract syntax. Expressions are binary trees
+where the leaves have natural numbers and each internal node is a
+operator with exactly two children.
+
+Not all strings are valid programs. 2 +  this is not a valid expression.
+
+1. Parsing is the process of going from the string representation to the
+   AST representaiton. If the input string is not a valid program then you
+   should give out an error.
+
+Syntax (Concrete syntax)  directed translation (into Abstract Syntax).
+
+String -----> Parse tree (AST) -----> Code by walking the tree
+
+** What is concrete syntax ?
+
+                         lexing
+String (list of chars) -----------> list of tokens -----> AST (by parsing)
+
+
+- lexical analysis :: from string to list of tokens.
+
+- Tokens are terminals of the CFG associated with the concrete syntax
+
+- Lexical analysis uses regular expressions (Finite state automata) to split up string into tokens
+
+Each token is expressed as a regular expression over the ASCII alphabet.
+
+
+*** Concrete syntax of expression
+
+#+BEGIN_EXAMPLE
+
+<expr> := <natural numbers>
+       | <expr> + <expr>
+       | <expr  * <expr>
+       | ( <expr> )
+
+nat := digit
+    | digit nat
+
+digit := 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+
+
+S -> ε
+   | S S
+   | ( S )
+#+END_EXAMPLE
+
+The above grammar is a CFG (context free grammar), the terminals
+(tokens) and non-terminals (symbols)
+
+234 + 345   --> (natural number 234) (plus operator) (natural number 345)
+
+In toc your were worried whether a string is in the language or not
+
+
+234  is nat
+     in expr  (rule  1)
+
++    is a token
+
+345 is a nat
+    is a expr
+
+Will be an expression
+
+
+234 ----- nat ----> E  ---
+                         |
++   ---------------------|--- E
+                         |
+345 ----> nat ----  E----
+
+
+#+BEGIN_EXAMPLE
+
+E -> n ∈ ℕ             { the singleton tree labelled n }
+  | E₁ + E₂            { A tree with root + and left child as E₁ and right child as E₂ }
+  | E₁ * E₂            { A tree with root * and left child as E₁ and right child as E₂ }
+  | ( E₀ )             { }
+
+
+If E ≡ ( E₀ ) Then what is the tree associated with E ? E₀ is itself a tree. THe tree associated
+with E is the same tree as E₀
+
+#+BEGIN_EXAMPLE
+
+(2 + 3) * 5
+
+
+(2 + 3)
+
+      *
+   +    5
+ 2   3
+
+#+END_EXAMPLE
+
+E₀ E₁ and E₂ are also E's but the numbering is the distinguish them.
+
+
+#+END_EXAMPLE
+** Ambiguity in CFGs.
+
+
+#+BEGIN_EXAMPLE
+
+Grammar G :
+E -> N
+  | E + E
+  | E * E
+  | ( E )
+
+#+END_EXAMPLE
+
+L (G) = L (E)
+
+L(E) =  L(N)
+     ∪ L(E) . "+" . L (E)
+     ̧u L(E) . "*" . L (E)
+     ∪ "(" . L(E) . ")"
+
+E₀ = N
+Eᵢ₊₁ = Eᵢ . { "+" } . Eᵢ
+     ∪ Eᵢ . { "*" } . Eᵢ
+
+L(E) = Uᵢ Eᵢ
+
+
+This is a set of derivation/production
+
+E => n
+  => E + E
+  => E * E
+  => ( E )
+
+(2 + 3) * 4
+
+E => ..... => (2 + 3) * 4
+
+E => E * E => ( E ) * E => ( E ) * 4 =>  ( E + E ) * 4 => ( 2 + E ) * 4 => (2 + 3) * 4
+
+
+#+BEGIN_EXAMPLE
+
+Consider 2 + 3 * 4
+
+E => E * E =>* (2 + 3) * 4
+
+E => E + E => 2 + E =>* 2 + (3 * 4)
+
+
+
+
+#+END_EXAMPLE
+
+In the grammar above the same string (2 + 3 * 4) has multiple derivations.
+Each of the derivation gives you a difference AST.
+
+A grammar where there exists string with different derivation is ambiguous.
+
+* Recursive descent parsing                                       :CLASSROOM:
+
+Please give us reporter access for your gitlab compiler assignment
+repository.
+
+
+string ---> lexical phase ---> tokens ---> parsing  ---> builds AST ---> backend
+
+The front end of the compiler is what we are interested in right now.
+
+
+Each token corresponds to a regular expression. Match these regular
+expression and chunk up the characters as tokens.
+
+identifiers   : any string that starts with an alphabet or _ (underscore) and
+                continues with a alphabet, _ (underscore) or digit
+
+		I will use the notation of extended regular expression supported
+		by tools like lex, grep etc
+
+		a + b + .. z + A + B + ... + Z + _
+
+		[a-zA-Z_][a-zA-Z_0-9]*
+
+numbers:        [0-9]+
+
+
+IF you look at the grammar you will have a terminal (token)
+corresponding to identifier ID.  x and y1 are different variables in
+your C program.
+
+Although ID is just a single token, each of the recognised ID has a
+"semantic content" or "meaning"
+
+
+assignment := ID ASSIGNOP expr { ASSIGN (x : string , e : AST of expr
+)
+
+
+** Syntax directed tranlation
+
+We have a list of tokens and we need to build the parse tree (AST )
+out of the list of tokens.
+
+#+BEGIN_EXAMPLE
+
+E -> E₁ + E₂   (PLUS rule) ( root as + and left subchild as E₁ and right subchild as E₂)
+  | E * E    (STAR rule)
+  | ( E )    (PAREN rule)
+  | N        (NAT rule)
+
+
+#+END_EXAMPLE
+
+A CFG rule is also called a production if you think of it as producing string.
+
+2 + (3 * 4)
+
+See how this string is derived from the grammar.
+
+
+| Step | Intermediate string    | Which rule used |
+|------+------------------------+-----------------|
+|    0 | E                      | start symbol    |
+|    1 | E + E                  | PLUS rule       |
+|    2 | E + ( E )              | PAREN rule      |
+|    3 | E + ( E * E )          | STAR rule       |
+|    4 | E + ( N[3] * E )       | NAT rule        |
+|    5 | E + ( N[3] * N[4] )    | NAT rule        |
+|    6 | N[2] + ( N[3] * N[4] ) | NAT rule        |
+           2 + ( 3 * 4 )
+
+Any string in the language associated with the CFG  can be derived this way.
+
+
+** How to parse ?
+
+1. Typically the grammar associate with a language is a CFG.
+
+2. In the compiler case we are not merely interested in checking
+   membership of a string x ∈ L(G) ?  In syntax direct translation, we
+   want to know the exact derivation that led to x being an element in
+   the L(G). Because the tree building steps that you used depends on
+   the exact rules (and the order) that you used to derive the string.
+
+3. There should be no ambiguity. Which means each string in the
+   language should have a unique derivation associated with it, either
+   through making the grammar unambiguous or other means
+
+   1. Not all CFL's have unambiguous grammar.
+   2. Even if the CFL has unambiguous grammar, there might be a
+      simpler ambiguous grammar for it.
+   3. Almost all tools like ml-yacc has a way to disambiguate
+      derivations by giving more precedence to one rule over the
+      other.
+
+      Expression grammar
+
+#+BEGIN_EXAMPLE
+      E => E + E
+        |  E * E
+        |  N
+	|  ( E )
+
+#+END_EXAMPLE
+
+Exercise: Find two distinct derivation for the string  2 + 3 * 4 in the grammar above.
+
+The problem is the following.
+
+There is a grammar G. A parser for the grammar G is an algorithm that
+on input x (a string / as a list of tokens), gives a unique derivation
+tree for x if x ∈ L(G).  Otherwise it should give an error message.
+
+1. CYK algorithm for checking member ship in L(G). This can be modified
+   to get a derivation.
+
+2. CYK is O(n³) algorithm n being the length of the string.
+
+We are not interested in arbitrary CFG. We are only interested in
+CFG's that arise in describing Programming language.
+
+We are going to learn parsing algorithms that are O(n) for certain
+subset of CFG's.
+
+
+
+The two kinds of parsing algorithms we look for are
+
+- LL(1)  or more generally LL(k) and even LL(∞).
+
+- LR(1)  or more generally LR(k).
+
+
+
+LL(k) and LR(k) What is this n ? The n is the number of tokens that
+you look ahead before you commit on to a particular derivation. Typically
+k is a constant in fact mostly 1 ( when n = 0 then it is very weak language class).
+
+Which means not matter what the input length is I will look ahead only
+k tokens, where k is a constant.
+
+
+What do I mean by LL(∞). The amount I will look ahead depends on the input.
+
+The k part in LL(k) and LR(k) is the amount of look ahead needed.
+
+| Grammar | Scan order    | Which derivation      |
+|---------+---------------+-----------------------|
+| LL(k)   | Left to right | Left most derivation  |
+| LR(k)   | Left to right | Right most derivation |
+
+
+2 + (3 * 4)
+
+#+BEGIN_EXAMPLE
+
+Left most derivation
+
+E => E    + E
+  => N[2] + E
+  => N[2] + ( E )
+  => N[2] + ( E    * E )
+  => N[2] + ( N[3] * E )
+  => N[2] + ( N[3] * N[4])
+
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+
+Right most derivation
+
+E => E    + E
+  => E + ( E )
+  => E + (E * E)
+  => E + (E * N[4])
+  => E + (N[3] * N[4])
+  => N[2] + (N[3] * N[4])
+
+#+END_EXAMPLE
+
+* Recusive descent parsing and LL(1)                              :CLASSROOM:
+
+LL stands for
+  (1) left to right scanning of tokens and
+  (2) Left most derivation.
+
+LL(k) algorithm the k stands for the look-ahead, i.e. # of tokens one needs to
+look before committing to a production.
+
+
+S => σ₁ => σ₂ ... => x   where x is the input
+
+σᵢ's are strings over Σ ∪ Γ , Σ is the set of terminals (tokens) and Γ
+is the set of non-terminals (symbols)
+
+
+I will be following the convention lower case letters are terminals
+and upper case letters are non-terminals.
+
+(1) => is the "derives in one step" relation defined below
+
+σ = α A β => α γ β     when A → γ is a rule (production) in the grammar.
+
+(2) =>* is the "derives in multiple steps" i.e is the transitive closure of =>
+
+Most natural algorithm
+
+
+- Input :: σ ∈ (Σ ∪ Γ)* and x ∈ Σ*
+
+- Check whether σ =>* x      =>* transitive closure of the => relation
+
+
+1. σ starts with a terminal ::  σ = a α
+
+     Anything that you can derive from σ should look like a y where α =>* y and y ∈ Σ*
+
+     In this case check whether (1) x = az for some z ∈ Σ* Then recursively check whether
+     α =>* z
+
+     If x is not of the above form then reject.
+
+2. σ starts with a non-terminal :: σ = A α
+
+     Any derivation that expands the A should be an application of some rule A → γ in the grammar
+
+     Go over each rule A → γ in the grammar and try each of them back
+     tracking when you reject at step (1)
+
+
+σ = A α => γ α     Recursively check if γ α =>* x or not.
+
+This is the obvious way to try figure out whether σ =>* x but is
+horribly inefficient (exponential time algorithm)
+
+
+*** Observations.
+
+If this algorithm succeeds then it finds the left most derivation.
+
+
+** Idea behind LL(1)
+
+- σ = a α ::  is the same as the inefficient algorithm defined above
+  Check if x starts with a, if yes munch the a and continue with α
+  otherwise reject.
+
+
+
+- σ = A α ::
+
+  Consider the production A -> γ if one of the following is true.
+
+  1. If the look ahead character is in FIRST(γ) or
+
+  2. If γ is nullable and look ahead character is in FOLLOW(A)
+
+     A α => γ α =>* ε α => x
+
+
+	      If A -> γ is a rule in the grammar and x = a y then
+   A -> γ is applicable if a ∈ FIRST(γ).
+
+  It is possible that x is derivable from σ where the first step involves
+  replacing A with γ. We cannot rule out the A → γ production.
+
+  What if a ∉ FIRST(γ) ? Then there are some cases where the A -> γ
+              production can be ruled out. Suppose that γ cannot
+              derive ε, or in other words γ is not /nullable/ then a ∈
+              FIRST(γ) means we can rule out A -> γ as the first
+              production to apply.
+
+ If a ∉ FIRST(γ) then A -> γ is applicable only if γ =>* ε
+
+ If γ =>* ε then the rule A -> γ is applicable if and only if the first letter of x
+ should have /followed/ A in some derivation of x.
+
+
+
+Your input was the string zx
+
+S => ...... => σ = A α
+
+S => ..... => β σ => .... => z x'
+
+
+S => ...... σ₁ => τ A τ₁ => τ γ τ₁ =>* τ τ₁
+
+σ = A α
+
+B -> τ A τ₁
+I want to check whether σ =>* x or not
+
+
+
+
+
+Whether we should consider the rule A -> γ or not.
+
+
+σ = A α =>  γ α => σ₁ => σ₂ ...... => x
+
+What can we say about the first letter in x ?
+
+
+x = x₁ x₂    where γ => x₁ and α => x₂
+
+If γ is not nullable then x₁ ≠ ε
+
+
+Suppose x₁ is not ε (empty string) Then the first letter of x₁ which
+is the first letter of x should be the first letter of some string
+derivable from γ.
+
+
+FIRST(γ) = { a ∈ Σ | γ =>* a y for some y ∈ Σ* }
+
+FIRST(γ) is the set of first letters of strings derivable from γ.
+
+
+FOLLOW(A) ⊆  Σ    A ∈ Γ.
+
+Elements of FOLLOW(A) are those letters which follow A in some
+derivation.
+
+
+S => τ₁ A τ₂ =>  .... => input string
+
+is it possible that the derivation above looks like
+
+
+S => τ₁ A τ₂ => τ₁ γ τ₂ => τ₁ τ₂   .... => input string
+
+We should not rule out A -> γ if the above is a possible derivation.
+
+When the next look ahead is in the FIRST(τ₂). We are going to define
+FOLLOW(A) which (you can see includes FIRST(τ₂)) is used to check
+whether I should consider A -> γ.
+
+
+
+
+
+
+*** Formal definition
+
+
+- NULLABLE (γ) is true if γ =>* ε
+
+  NULLABLE (aγ) is always false where a ∈ Σ.  Any string derivable from a γ looks like a y where y is
+  derivable from γ.
+
+  If γ has a terminal somewhere,i.e. γ = γ₁ a γ₂ then NULLABLE(γ) =
+  false.
+
+  γ = A₁ A₂ ... Aₘ ; NULLABLE(γ) if and only if NULLABLE(Aᵢ) for all i
+
+  So we just need to check whether NULLABLE(A) is true for A ∈ Γ.
+
+  - N = ∅
+  - Forall A ∈ Γ, if A -> γ is a production and NULLABLE(N,γ) then
+    add A to N and continue
+
+    NULLABLE(N,γ) = false if γ = γ₁ a γ₂
+                  = true  if γ = A₁ A₂ ... Aₙ and each Aᵢ ∈ N
+
+  - If no more A is added stop
+
+    N is the set of all nullable symbols.
+
+    N = { A ∈ Γ | A =>* ε  }
+
+- FIRST(γ) :: We essentially only compute FIRST(A) A ∈ Γ
+
+  FIRSTₒ(A) = ∅  forall A ∈ Γ.
+
+  FIRSTᵢ₊₁ (A) = FIRSTᵢ (A) ∪ FIRSTᵢ (γ) for all production A -> γ in the grammar.
+
+  FIRSTᵢ(γ) , if γ = a γ́' then FIRSTᵢ(γ) = {a}
+     otherwise if γ = A₁ A₂ .. Aₘ α
+
+     Let us say the A₁..... Aₘ₋₁  is nullable but not Aₘ. then
+     FIRSTᵢ(γ) = FIRSTᵢ(A₁) ∪ FIRSTᵢ(A₂) ... FIRSTᵢ(Aₘ₋₁) ∪ FIRSTᵢ(Aₘ)
+
+
+FIRST(aγ) = { a }
+
+FIRST(Aγ) = FIRST(A) ∪ FIRST(γ)  if A is nullable
+          = FIRST(A) otherwise
+
+
+Invariant is FIRSTᵢ(A) ⊆ FIRST(A)
+
+
+lim i → ∞ FIRSTᵢ (A) = FIRST(A)
+
+FIRSTᵢ(A) can atmost be Σ
+
+* Computing FIRST and FOLLOW                                      :CLASSROOM:
+
+** Recap
+
+Σ is the set of terminals
+Γ is the set of non-terminals
+
+LL-1 Parsing algorithm.
+
+FIRST(γ) where γ ∈ (Σ ∪ Γ)*
+
+FIRST(γ) = { a ∈ Σ | γ =>* a y for some y ∈ Σ* }
+
+- The first terminals of some string derivable from γ
+
+
+FOLLOW(A) is the set of all a ∈ Σ such that there is some derivation
+where a is the terminal that immediately follows A.
+
+S => γ₁ => γ₂ ..... => σ A aτ => ..... => y ∈ Σ*
+
+
+
+- Compute the FIRST(A) for all A ∈ Γ
+- Compute the FOLLOW(A) for all A ∈ Γ.
+
+- To help we compute these of all nullable non-terminals.  We say that γ is nullable
+  if γ =>* ε
+
+
+When is γ ∈ (Σ ∪ Γ)* nullable ?
+
+- If γ = ε then clearly γ is nullable.
+
+- If γ = γ₁ a γ₂  then γ is not nullable.
+
+  Then any derivation of γ will look like γ = γ₁ a γ₂ => x₁ a x₂ where γᵢ =>* xᵢ
+
+- If γ = A γ'  then γ is nullable if only if A is nullable and γ' is nullable.
+
+  γ = A γ'  =>* x₁ x₂ where A =>* x₁ and γ' =>* x₂.
+
+  - If γ =>* ε then there should exist x₁ and x₂ such that A =>* x₁
+    and γ' =>* x₂ and x₁ x₂ = ε x₁ x₂ = ε if and only if x₁ = ε and x₂
+    = ε
+
+  - Converse is straight forward.
+
+
+Suppose we know the set NULLABLE of all nullable non-terminals. Then
+any γ is nullable if and only if γ = NULLABLE*
+
+We want to compute NULLABLE ⊆ Γ
+
+
+** Algorithm for nullablility.
+
+   A is nullable if A can derive ε (A could derive other strings as well)
+
+   - N₀ = ∅. We will keep updating till Nᵢ becomes the set NULLABLE.
+
+   - Nᵢ₊₁ = Nᵢ ∪ { A ∈ Γ | A -> γ ∈ Grammar for some γ ∈ Nᵢ*  ⊆ NULLABLE* }
+
+     The output of the algorithm is lim i -> ∞ Nᵢ
+     (You can stop after i = #Γ )
+     NULLABLE = Nᵢ where i = #Γ
+
+   - Invariant of the algorithm :: Nᵢ ⊆ NULLABLE.
+
+	From the invariant we have that each symbol that we add to Nᵢ to get Nᵢ₊₁ is itself nullable.
+
+*** Termination of the algorithm
+
+    - We can stop when Nᵢ₊₁ = Nᵢ :: The Nᵢ₊₂ onwards all become Nᵢ
+
+    At each step where Nᵢ₊₁ ≠ Nᵢ one adds at-least a new non-terminal
+    to Nᵢ. The algorithm has to stop in ≤ # Γ many steps which is
+    finite.
+
+    Run time is polynomial in # rules and # Γ. i.e. it is a polynomial
+    time algorithm.
+
+
+***
+
+** Computing FIRST.
+
+Computing FIRST(γ).
+
+Convention :: Upper case letters are non-terminals and lower case letters are terminals.
+
+- γ = a γ́  :: FIRST(γ) = { a }
+
+	       Any string such that γ = a γ' =>* a x where γ' =>* x
+
+- γ = A γ' :: FIRST(γ) = FIRST(A) ∪ FIRST(γ') if A ∈ NULLABLE
+	                 FIRST(A)             otherwise
+
+	      γ = A γ' => x₁ x₂ where A =>* x₁  and γ' =>* x₂
+
+	      If A is not nullable then x₁ is not an empty string. therefore
+	      the only letters that can be at the start of x₁ is FIRST(A).
+	      It is possible that x₁ can be ε (where A is nullable)
+
+
+
+We need to compute FIRST(A) for all A ∈ Γ.
+
+F : Γ -> subsets of Σ
+
+We can extend any such function to functions Γ* -> subset of Σ
+
+We abuse notation and use F to denote the extended function.
+
+F(aγ)  = {a}
+F(A γ) = F(A) ∪ F(γ) when A ∈ NULLABLE
+       = F(A)        otherwise.
+
+
+*** Algorithm
+
+- Start with Fᵢ such Fᵢ (A) = ∅
+- Invariant :: Fᵢ (A) ⊆ FIRST(A).
+
+- Fᵢ₊₁ (A) = Fᵢ(A) ∪ Fᵢ(γ) for all rules A -> γ in the grammar. Notice that we always keep
+  the Invariant true.
+
+- FIRST  = lim (i -> ∞) Fᵢ
+
+
+Note that if A -> γ is a rule in the grammar then FIRST(γ) ⊆ FIRST(A)
+
+**** Termination
+
+ Whenever Fᵢ₊₁ = Fᵢ as functions we can stop
+
+ Whenever Fᵢ₊₁ ≠ Fᵢ you should be updating at-least
+ one Fᵢ(A) by at least one additional terminal.
+
+ Fᵢ (A) ⊆  Σ
+
+The total number of steps = # Σ * # Γ.
+
+This is a poly-time algorithm.
+
+** Algorithm for FOLLOW.
+
+
+FOLLOW(A) consists of letters a such that there
+is a derivation of the kind
+
+S =>  ...... => γ A a γ' => .... => x
+
+Consider any rule
+
+B -> γ A γ'
+
+
+S => ......=> σ B σ' => σ γ A γ' σ' .....
+
+
+
+(case 1)                      =>* σ γ A x₁ σ'
+
+(case 2)                      =>* σ γ A ε σ'  (if γ is nullable)
+
+FOLLOW(A) = FIRST(γ') ∪ FOLLOW(B) if NULLABLE(γ')
+          = FIRST(γ')             otherwise
+
+
+
+The follow set is defined using the following cases (take the union of the cases).
+
+1. FIRST(γ') ∪ FOLLOW(B) if B -> γA γ' is a rule and NULLALBE(γ')
+2. FIRST(γ')             if B -> γA γ' is a rule and γ' is not nullable.
+
+** Algorithm is similar
+
+ Gᵢ (A) = ∅
+
+ Gᵢ₊₁(A) =Gᵢ (A) ∪ FIRST(γ') ∪ Gᵢ(B) for each rule B -> γ A γ' where γ' is nullable
+         = Gᵢ(A) ∪ FIRST(γ')         for each rule B -> γ A γ' where γ' is not nullable.
+
+
+ FOLLOW = lim (i -> ∞ ) Gᵢ
+
+
+
+
+* Shift-Reduce parsing                                            :CLASSROOM:
+
+** Recap
+
+We have already seen LL(1) parsing.
+
+1. Recursive descent parsing.
+
+S as the start symbol and then tries to derive the input starting from S.
+
+S =>* τ σ
+
+The input is x = x₁ x₂  and x₁ has already been seen by the parser and τ =>* x₁
+We want to check σ =>* x₂  S =>* τ σ =>* x₁ σ =>* x₁ x₂ = x.
+
+Top down method of parsing.
+
+- Main idea of recursive descent parsing ::
+
+     We have σ and we want to check whether σ =>*  x₂
+
+     1.  σ = a α then we just check x₂ = ay  and advance the parser. otherwise reject.
+
+     2. σ = A α . In this case we need to check whether we should
+        derive σ = A α => γ α for some rule A → γ in the grammar
+        (LL(1) look at the look ahead and choses exactly one such
+        rule)
+
+	LL(1) Consider a rule A → γ for step (2) only if
+	(1) The look-ahead ∈ FIRST(γ) or
+	(2) If γ =>* ε and the look-ahead ∈ FOLLOW(A).
+
+	If there is a confusion between two rules on a particular
+        look-ahead then the parsing with LL(1) parser is not possible.
+
+
+|   | a | b       | c       | d |
+|---+---+---------+---------+---|
+| A |   | A -> γ₁ |         |   |
+| B |   |         | B -> γ₂ |   |
+| C |   |         |         |   |
+
+
+
+Include  Aᵢ -> γ  in the (Aᵢ, a) entry if one of the below
+
+(1) FIRST(γ) = a or
+(2) γ =>* ε  and a ∈ FOLLOW(Aᵢ)
+
+What happens when two or more rules fall in a particular LL(1) table entry ? Then there is no
+LL(1) parsing algorithm for the grammar.
+
+
+** General Shift reduce parsing.
+
+   The parser is a machine with a stack (stack symbols are Σ ∪ Γ), you
+   can push a terminal or a non-terminal on to the stack.
+
+   And it is scanning the input.
+
+    γ[]x    The stack contains γ and the input is x, γ ∈ (Σ ∪ Γ)* and x ∈ Σ*
+
+    aAAba[]
+
+    I will also add the pseudo-terminal $ to indicate the end of the input.
+
+*** Shift-reduce "program" for this machine
+
+
+
+      You have seen an input which is derivable form the contents of the stack.
+
+      That means your original input was something like x₁ x₂ where x₂
+      is the input that needs processing and x₁ is derivable from the
+      contents of the stack.
+
+    - SHIFT :: Consume the first letter of the input and push it on to the stack
+
+      #+BEGIN_EXAMPLE
+	       γ [] a x   ==== SHIFT ===> γ a [] x
+
+
+      #+END_EXAMPLE
+
+    - REDUCE (A -> γ) ::
+
+      See if γ in reverse order is present on the top of the stack, if yes then pop out γ and
+      push in A.
+
+      A -> a b c
+
+      γ' a b c [] x  ==> REDUCE (A -> abc) ==> γ' A [] x
+      #+BEGIN_EXAMPLE
+
+        γ' γ [] x  === Reduce (A -> γ) => γ' A [] x
+
+	γ' γ =>* the input seen so far.
+
+	γ' A => γ' γ =>* the input seen so far.
+
+      #+END_EXAMPLE
+
+    - ACCEPT :: When the next terminal is $ (i.e end of input is obtained) and the
+		content of the stack is S the start symbol. (Otherwise error)
+
+- Lemma :: Given a CFG G and a string x, we have
+
+	 (i) If x ∈ L(G) then there is a shift-reduce program which makes the stack machine
+	     go to accepting state (starting from the empty stack)
+
+	 (ii) Let P be a SHIFT-REDUCE program and let x be an input
+           such that the stack machine with empty stack accepts on
+           program P on input x then x ∈ L(G).
+
+
+- Idea of the proof :: We maintain the invariant that if the state of the machine
+     is γ [] y at some point of time, then the original input is x y where γ =>* x.
+
+     Notice that each of the instruction maintains this invariant.
+     At the end if the machine has γ [] $ then the actual input is derivable from γ.
+     γ =>* the input to the machine
+
+     If there is a shift-reduce program that accepts the input then the state of the
+     machine is S [] $ which means S => the input to the parser.
+
+
+
+If x ∈ L(G).
+
+S => σ₁ => σ₂ .... => σₙ = x  (right most derivation of x)
+
+(S -> αAabcd.)   and αAabcd =>* x
+
+x = x₁ abcd where α A => * x₁
+
+   <--- S [] $
+ACCEPET ; REDUCE (S -> αAabcd) ; SHIFT ; SHIFT; SHIFT ; SHIFT;
+                                                          ^
+                                                          |   αA [] abcd$
+
+
+
+
+Algorithm that converts a valid right most derivation of S =>* x to a
+SHIFT-REDUCE program accepting x.
+
+Keep track of the program state as γ [] y where with an invariant that
+γ =>* y
+
+To start with the program state is S [] x $. We are given a derivation so
+we know that S =>* x. The output is ACCEPT.
+
+At each step do the following.
+
+- Case 1 :: γ = α A . The right most derivation used should be some A -> β.
+  Then output REDUCE (A -> β). the program state is αβ [] y.
+
+- Case 2 :: γ = α a. Then the requirement that γ =>* y means that y = y₁ a where α =>* y₁
+  Then output SHIFT and the program state is α [] y₁
+
+The claim is that: The reverse of the output of the program will give a SHIFT-REDUCE
+program that accepts x.
+
+*** Making this feasible.
+
+We need a way to get to the shift reduce program (if it exists)
+without having the entire derivation but just the input .
+
+* LR(0), SLR(1), LR(1) parsing
+
+The SHIFT-REDUCE program is generated via A DFA that looks at the input.
+The program generated by the DFA is used to accept the string.
+
+The decisions that are made on whether to shift or to reduce is based on
+
+1. The finite states of the machine
+
+2. The next input.
+
+
+I am talking about SRL(1) parser.
+
+- LR(0) Item :: The LR(0) item associated with a grammar G consists of objects
+		A -> γ₁ • γ₂ where the rule A -> γ₁ γ₂ is in the grammar G.
+
+		Eg. Suppose A -> a A a is a rule. Then the following are LR(0)
+		items associated with the above rule.
+
+
+		A -> a A a •
+		A -> a A • a
+		A -> a • A a
+                A -> • a A a
+
+		A -> γ₁ • γ₂   is associated with the rule A -> γ  where γ = γ₁ γ₂
+
+
+The states of the machine will consists of subsets of LR(0) items.
+
+
+The DFA will have states that consists of subsets of the set of LR(0)
+items.
+
+** The overall idea of forming the DFA.
+
+*** Interpret the LR(0) item  A -> γ₁ • γ₂
+
+There exist a shift reduce program which has taken the parser to a
+situation where
+
+1. The machine stack looks like γγ₁[] for some γ ∈ (Σ ∪ Γ)*, i.e the
+   top of the stack consists of γ₁ and there might be some γ further
+   down in the stack.
+
+2. The machine is /expecting/ to see some string that is derivable
+   from γ₂. The machine cannot say for sure that it will indeed see
+   some string that is derivable from γ₂ as it has not yet seen that
+   portion of the input.
+
+Any state of the machine is a subset of such LR(0) items. One should
+think of this as a kind of Non-deterministic automata that we have
+made deterministic via subset construction.
+
+Recall the subset construction for NFA -> DFA conversion.
+
+- States of the DFA are subsets of states of the NFA
+
+- δ ( Q, a) = ∪ δₙ(q) for all q ∈ Q. recall that for a q ∈ STATE(NFA)
+  δₙ(q) ⊆ STATE(NFA)
+
+*** Rules for computing the next state.
+
+Let us say we have a state Q and A -> γ₁ • γ₂ ∈ Q.
+
+1. Suppose that γ₂ = a α . i.e. A → γ₁ • a α ∈ Q. Then clearly on
+   input /a/ the state should be some state that contains A -> γ₁ a •
+   α, i.e. the action is SHIFT on input a.
+
+   - Explanation :: You are expecting to see /a/ as the next token.
+
+   The SHIFT-REDUCE machines stack looks like γγ₁ [] and the input you are expecting
+   is something that is derivable from γ₂. So if the input indeed looks like ay (i.e. the
+   next token is a in the input) what should the action of the SHIFT-REDUCE machine be ?
+
+   The action to do on the state Q on input /a/ should be SHIFT.
+
+   What is the state that it should move to on input a. Recall that it should be some Q'
+   which is a set of LR(0) items.
+
+   We have A -> γ₁ • a α ∈ Q then Q' should have  A -> γ₁ a • α
+
+
+2. Suppose that A → γ • is an item in the state Q. We should reduce on
+   the production A -> γ and we need to figure out what the new state.
+
+
+** Closed state.
+
+So far we were saying that the state should be an arbitrary subset of
+LR(0) items. However we are only interested in what are called the
+/closed states/
+
+- Closed state ::
+
+  A state Q is /closed/ if for all LR(0) item A -> α • B γ and the
+  production B -> σ of the grammar, the item B -> • σ also belongs to Q.
+
+- Intuition :: A → α • B γ ∈ Q.
+
+  The machine is expecting some input derivable by B γ so it "goes
+               into the mode" of also looking for B in the next few
+               tokens. As a result Q should also have the LR(0) item B
+               → • σ for all production B -> σ in the grammar.
+
+
+- Closure computation :: Easy
+
+  Given a non-closed state Qₒ, we can compute its closure(Qₒ) is the
+  smallest closed state (in the containment order) that contains Qₒ
+
+  If Qₒ is already closed then stop else there is some A -> α • B γ ∈ Qₒ for which
+  the item B -> • σ  is not present. Add it and continue.
+
+
+** LR(0) parsing.
+
+
+- States of the machine are closed states.
+
+We are not going to say SHIFT a where a is a terminal.
+
+
+- Understanding the SHIFT rule.
+
+  Q = { ... A -> α • a γ .... } -- SHIFT a --> { .... , A -> α a • γ, ....}
+
+
+- Understanding the REDUCE rule
+
+  Q = { .... A -> γ • ......}
+
+  The SHIFT-REDUCE machine has gamma on top of the stack and there is
+  no expectation on the machine's behalf on what it is expected to
+  see. This is a point where the machine can potentially execute a
+  reduce action.
+
+  In other words if a state Q does not contain a LR(0) item like
+  A -> γ •, doing a reduce action at this point will lead to error.
+
+  A -> α • γ   where γ ≠ ε
+
+
+The stack of the machine will have the states as the element.  There
+are three kinds of action.
+
+- SHIFT  q  where q is another state
+- REDUCE k  where k ∈ ℕ
+- GOTO   q  where q is another state
+- ACCEPT
+
+*** The transition table is a function
+
+
+δ : STATE × TERMINAL -> { SHIFT q | q ∈ STATE } ∪ { REDUCE k | k ∈ ℕ }
+
+
+| State | a        | b        | c        | d     | e  |    |
+|-------+----------+----------+----------+-------+----+----|
+| q₀    | SHIFT q₁ | REDUCE 3 | SHIFT q5 | ERROR | .. | .. |
+| q₂    |....      |  ...     | ...      | ...   | .. | .. |
+
+
+This table is made using the following rules.
+
+1. Let q be a state of the machine, let q' = Closure{ A → α a • γ |
+   for all A -> α • a γ ∈ q }.  Then the entry (q,a) in the above
+   table will have SHIFT q'.
+
+
+2. Let q be a state of the machine and let A -> γ • ∈ q. Then
+
+   SHIFT-REDUCE mahcine will have γ on top of the stack
+
+   Our LR(0) will have q q₁ ... qₖ
+
+   γ = γ₁....γₖ  where each γᵢ ∈ Σ ∪ Γ
+
+   q₁ = { A -> γ₁ • σ .... ...}
+
+   q₂ = { A -> γ₁ γ₂ • σ ..... }
+
+   qₖ = { A -> γ₁ γ₂ .... γₖ•  ... }
+
+   - LR(0) parsing table we have REDUCE k where k = length of γ.
+
+     REDUCE k remove the top k states on the stack and then pushes the
+     state q' which GOTO(q,A) where q is the top of the stack (after
+     the k states have been poped out)
+
+
+
+   - What is actually the next state.
+
+
+
+In LR(0) if a state has A -> γ • . All actions are reduce. If there
+are other reduce actions or shifts action there is a reduce/reduce or
+shfit/reduce conflict.
+
+
+
+
+*** The GOTO table.
+
+It is a function from G : STATE × NON-TERMINALS -> STATE
+
+q is a state.
+
+q' = Closure { A -> α B • γ  |  A -> α • Bγ in the state q  }
+
+Then q' is in the GOTO(q,B).
+
+Imagine that you are in state q So you are seeing q A -> α • B γ.
+B -> • σ.
+
+q                          q₁                   q₂
+A -> α • Bγ
+B -> • aa     -- SHIFT    B -> a • a  -- SHIFT – B -> a a •
+
+
+Reduce in q₂ should remove q₂ and q₁
+
+
+** The Parsing algorithm for  LR(0), SLR(1), LR(1),
+
+The Grammar consists of terminals Σ and non-terminals Γ. One of the
+elements $ ∈ Σ is special and is only allowed at the end of the
+string.
+
+1. A set of states and a start state s₀
+
+2. A SHIFT-REDUCE table SR : State × Σ
+                                       → { SHIFT q | q ∈ State }
+                                       ∪ { REDUCE n A | A ∈ Γ, n ∈ ℕ }
+                                       ∪ { ERROR , ACCEPT}
+
+
+3. A GOTO table : GT : State × Γ → State
+
+
+The algorithm
+
+1. Start with the stack containing s₀
+
+2. For ever (rather till we accept or Reject) do.
+   Let s be the current stack top and /a/ be the next token.
+
+   Then do the following based on SR(s,a)
+
+   - Case SR(s,a) = SHIFT q    :: Then push q on to the stack, consume a and continue.
+   - Case SR(s,a) = REDUCE n A :: Then pop out n states from the
+        stack. Let s' be the current stack top (i.e the top of the
+        stack after you have pushed out n states) then push GT(s',A)
+
+     [s', sₙ....,s₁ = s ]  -> REDUCE n A ->  [s', GT(s',A)]
+
+     Reduce w.r.t a rule A -> γ   REDUCE |γ| A where |γ| means the length of γ as a string in
+     (Σ ∪ Γ)*
+
+   - Case SR(s,A) = ACCEPT :: Accept the input
+   - Case SR(s,A) = ERROR  :: Then reject.
+
+
+** LR(0) and SLR(1)
+
+Each state is a  /closed/ subset of LR(0) items.
+
+
+We will look at an Augmented grammar. Suppose your grammar is a
+grammar on terminals Σ and non-terminals Γ and let $ be a fresh
+pseudo-terminal which denotes the end of the input. Let S bet the
+start symbol of the grammar.
+
+Augmentation means adding the additional rule S' → S $ and making
+S' the start symbol
+
+
+Closed subset of items ::  A -> γ • B γ₁  is in the set then B -> • β should also be in the set
+for all B -> β in the grammar.
+
+- We start with the state State = {  s₀ = Closure(S' -> . S$) }
+
+- For any state s ∈ State and a ∈ Σ compute all shift actions and GOTO action
+
+  + SHIFT (s,a) = Closure { A -> γ a • γ' | A -> γ • a γ' ∈ s }.
+
+    For the Shift-reduce table, the entry for s,a is SHIFT q where
+    q = Closure { A -> γ a • γ' | A -> γ • a γ' ∈ s }.
+
+    This populates the shift reduce table partially (only shift actions
+    are added).
+
+    SHIFT(s,a) is the state that I should shift into  when I see a
+    Look at all items A -> γ • a γ' in s. Take the set of all c A -> γ
+    a • γ' and then compute the closure.
+
+    If s does not contain an item of the kind A -> γ • a γ' then there
+    is no shift action from state s on lookahead /a/.
+  + GOTO(s,B) = Closure { A -> γ B • γ' | A -> γ • B γ' ∈ s }
+
+    For the GOTO table the entry corresponding to (s,B) is the
+    state q =  Closure { A -> γ B • γ' | A -> γ • B γ' ∈ s }
+
+    This populates the goto table fully
+
+
+- For each A -> γ • ∈ s  add a REDUCE n A where n = |γ| action
+  for the entries (s,a) where
+
+  + For LR(0) parser add it for each a ∈ Sigma
+
+  + For SLR(1) add it for each a ∈ FOLLOW(A).
+
+
+  (* This can lead to shift/reduce and reduce/reduce conflicts *)
+
+  Shift reduce conflict happens when there both A -> α • a β ∈ s and B -> γ • ∈ s
+
+  Reduce/reduce conflict happens when there is bot A -> γ₁ • and B -> γ₂ • ∈ s
+
+
+
+
+** LR(1) Parsing.
+
+   B -> S a
+   S ->  a A b
+   S ->  c A
+
+   ....
+   A -> a A
+   A -> ε
+
+
+
+   FOLLOW (A) = { b } ∪ FOLLOW(S)
+
+
+   Look at the item [S -> • a  A b] --a>   [ S -> a • A b, <A -> • a A, b> ; <A -> •, b> ]
+                                             |
+                                             a  Reduce A -> ε on all elements x ∈ FOLLOW(A)
+					     |
+					     v
+                                            Closure (A -> a • A)
+
+
+
+
+
+
+
+
+- LR(1) item :: ⟨ A → α • β, x ⟩ where x ∈ Σ.
+  i.e. LR(1) item = LR(0) item × Σ
+
+
+   LR(0) item A → α • β was interpreted as I have α on the top of the stack and
+   I am expecting to see some string derivable from β in the future.
+
+   LR(1) item ⟨ A → α • β , x ⟩ is interpreted as I have α on the top of the stack
+   and I am expecting to see some string derivable from β x
+
+- Closure :: For each item ⟨ A -> α • B β , x ⟩
+
+
+  For LR(0) item when we had A -> α • B β  we added B → • γ
+
+  For LR(1) add the item ⟨ B -> • γ, w ⟩ where
+	     B -> γ is a rule in the grammar and w ∈ FIRST(βx)
+
+Interpretation is that the stack contains α and we are expecting something derivable by βx
+
+If ⟨ A -> γ • , w ⟩ ∈ S then add the reduce action Reduce n A for the
+entry (s,w) where n = |γ|.
+
+
+#+BEGIN_EXAMPLE
+
+E -> nat
+  | E + E
+  | E * E
+
+#+END_EXAMPLE
+
+
+* Basic Concepts                                                    :LECTURE:
+- Video :: https://youtu.be/rSr8KClycRk
+
+** What is a compiler ?
+
+- source programming language :: High level programming language like
+     SML, Java, C etc
+
+- target programming language :: Low level programming language like
+     machine language/assembly language of some processor, Some times
+     C can serve as a portable low level language.
+
+
+A compiler is just a program that converts, programs written in the
+source programming language to equivalent program (does the same
+"thing") in the target language.
+
+
+
+** Example
+
+- source language :: is the language of expressions over natural numbers with
+     operators being + and *.
+
+     #+BEGIN_EXAMPLE
+     2 + 3 * 5
+     #+END_EXAMPLE
+
+- target language :: is the machine language for a simple stack machine.
+     It is a machine with a stack and the following instructions
+
+#+BEGIN_EXAMPLE
+
+push n    ; where n is a natural number.
+exec op   ; op is an operator + or *
+print     ; prints the top of the stack
+
+
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+2 + 3 * 5    compiles to
+
+push 2
+push 3
+push 5
+exec *
+exec +
+print
+
+#+END_EXAMPLE
+
+** Representation of programs
+
+- User :: Presents the program as a string (as a file but that file
+          contains a string)
+
+- Output of the compiler :: Machine code which is also a string (as an executable file)
+
+
+compiler : string -> string.
+
+
+1. Not all strings are valid programs. "2+" is not a valid program.
+
+2. Strings are not convenient to process for the compiler. Lₛ => L₁ =>
+   L₂ ... => Lₜ
+
+
+** Abstract syntax trees or parse trees.
+
+2 + (3 * 4)
+
+#+BEGIN_EXAMPLE
+
+       +
+      / \
+     2   *
+        / \
+       3   4
+
+#+END_EXAMPLE
+
+Labelled binary tree with the following labels.
+
+- All leaves are labelled by natural numbers.
+
+- All internal nodes have degree 2 and are labelled either by a + or a *
+
+
+Any such tree gives a unique expression. These binary trees represent
+the expression language better.
+
+
+#+BEGIN_EXAMPLE
+
+<expr> = n   ; n a natural number
+       | <expr>₁ + <expr>₂
+       | <expr>₁ * <expr>₂
+
+#+END_EXAMPLE
+
+** Concrete syntax (grammar)
+
+
+
+Let us give a context free language that captures all expressions.
+
+
+#+BEGIN_EXAMPLE
+
+E -> natural number
+   | E + E
+   | E * E
+   | ( E )
+
+N -> [1-9][0-9]*
+
+#+END_EXAMPLE
+
+The context free grammar that captures all string that are valid
+programs is called the concrete syntax or grammar for that language.
+
+
+
+** Phases of the compile
+
+- Parsing :: input string -> AST of the source language.
+
+- Code generation :: AST of source -> AST of target language.
+
+- Pretty print :: AST of target language -> string (executable)
+
+The parsing stage is called the front end and Code gen + pretty printing is called the backend
+
+
+
+* Parsing (and a little bit on lexing)                              :LECTURE:
+
+- Video :: https://youtu.be/I8kIL9s8jPU
+
+Recall that parsing is the process by which we convert the user input
+(string) to the AST of the source language.
+
+1. Break up the string into a list of tokens (lexing)
+
+2. Combine the tokens using the CFG of the language to build the AST.
+
+#+BEGIN_EXAMPLE
+
+E -> N        (1)
+  | E + E     (2)
+  | E * E     (3)
+  | ( E )     (4)
+
+#+END_EXAMPLE
+
+This is the context free grammar for expressions.
+
+** Lexical phase
+
+- What are the tokens (terminals) of this grammar ?
+
+  { N , + , * , ( , ) } are the tokens or terminals
+
+
+Lexical phase is breaking the string into list of tokens.
+
+
+- Input string ::
+
+#+BEGIN_EXAMPLE
+
+"2    + * ( 3  4 45 )"   ==> lexical phase => N + * ( N N N )
+                                              N[2] + * * N[3] N[4] N[45] )
+#+END_EXAMPLE
+
+It breaks the string and also associates meanings.
+
+** Parsing phase
+
+Recall now the input is just a list of tokens. And one needs to combine these
+tokens and build the parse tree (AST)
+
+#+BEGIN_EXAMPLE
+
+(expression cfg)
+
+E -> N        (1)  ( singleton tree with value as that of N)
+  | E₁ + E₂   (2)  ( root + and E₁ left and E₂ is right)
+  | E₁ * E₂   (3)  ( root * and E₁ left and E₂ is right)
+  | ( E )     (4)  ( The same tree as rhs)
+
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+Input is
+
+N[2] + (  N[3] * N[4] )
+
+2 + (3 * 4) ===> parsing ===>     +
+	       	       	       	 / \
+	    		       	2   *
+	    		       	   / \
+	    			  3   4
+
+
+#+END_EXAMPLE
+
+*** Syntax directed translation
+
+- Convention :: Whenever I write "2" I actually mean N[2].
+
+- Input :: 2 + ( 3 * 4 )
+
+- How can you prove that the above input is a string in the language
+  associated with the expression cfg ?
+
+THink of the cfg as a string production system where any string of
+terminals ∪ non-terminals generate strings by replacing the lhs with
+rhs
+
+| Step | String          | Rule            |
+|------+-----------------+-----------------+
+|    0 | E               | starting symbol |
+|    1 | E + E           | (2)             |
+|    2 | E + ( E)        | (4)             |
+|    3 | E + ( E * E)    | (3)             |
+|    4 | E + ( E * N[4]) | (1)             |
+|    5 | E + ( 3 * 4)    | (1)             |
+|    6 | 2 + ( 3 * 4)    | (1)             |
+
+
+Hence 2 + ( 3 * 4) is a valid expression is in the language associated
+by the expression cfg.
+
+1. CFGs give string derivation
+
+2. Rules can be associated AST building semantics
+
+3. For an input x get the associated derivation starting from start symbol.
+   The ast is the tree build by running the corresponding tree building rules.
+
+
+* LL(1) Parsing                                                     :LECTURE:
+
+- Video :: https://youtu.be/dzyXcowYZgM
+- Video :: https://youtu.be/bXQ9JfmiLCw
+
+** Basic conventions.
+
+   Fix a grammar G. The terminals are Σ = {a,b,c..} and the non-terminals are Γ = {A,B,C}.
+
+   - Convention :: lower case letters are terminals and upper case letters are non-terminals.
+
+   - Start symbol :: There is a starting symbol S ∈ Γ.
+
+
+** Grammar as a string production system.
+
+Consider σ ∈ (Σ ∪ Γ)*  i.e. a string of terminals and non-terminals.
+
+σ = aaABcDe => aaαBcDe (1-step derivation).
+
+Let us say A → α is a rule in the grammar.
+
+
+Suppose σ = σ₁Aσ₂ then σ₁ α σ₂ is derivable from σ (in one step) using
+the rule A → α of the grammar.
+
+Extend the "derivable" relation to multi-step derivation
+
+
+σ =>* τ if there exists a series of one step derivations
+
+σ = σ₀ => σ₁ => ... => σₙ = τ.
+
+i.e. One can reach τ from σ by continuously replacing a non-terminal
+with its rhs in the grammar.
+
+
+- Lemma :: The string x ∈ L(G) if S =>* x  where S is the start symbol.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+** A general parsing algorithm.
+
+- Input :: σ ∈ (Σ ∪ Γ)* and a string x ∈ Σ*
+
+	 σ is a string of terminals and non-terminals and x is a
+           string of terminals.
+
+- Decide :: σ =>* x, i.e. decide whether x can be derived from σ in
+            multiple steps.
+
+
+To check membership of x ∈ L(G), give the input σ = S the start symbol.
+
+A recursive descent parsing algorithm solves the above problem.
+
+
+1. Suppose σ = a α ; a is a terminal. Any string one can derive from σ
+   will look like a y for some y ∈ Σ*
+
+   σ =>* x if and only if  x = ay and α =>* y
+
+   If x = by for some b ≠ a then σ =>* x is not possible.
+
+2. σ = A α then σ => * x if and only if there is some production A → γ
+
+   γ α => * x.
+
+We try to expand the left-most symbol at each step.
+
+The recursive descent parsing algorithm just tries over all the
+productions of A and back tracks and finds a match.
+
+This is a hopelessly inefficient algorithm. LL(1) is a more efficient
+version of this algorithm but it need not work for all grammars.
+
+
+** LL(1) parsing algorithm.
+
+- Input :: x ∈ Σ*
+- Output :: x ∈ L(G)
+
+- Overall picture of the parsing algorithm.
+
+The parser keeps track of σ ∈ (Σ ∪ Γ)* with the following properties.
+
+1. x = x₁ x₂ where x₁ is the portion of the input that the parser has
+   already seen (consumed)
+
+2. S =>* τ σ where τ ∈ (Σ ∪ Γ)*
+
+3. τ =>* x₁ (the initial portion that the parser has already
+   consumed).
+
+The parser then tries to see if x₂ (the rest of the input) can be matched from σ.
+
+Is it the case that σ =>* x₂
+
+- Lemma :: If the parser succeeds then the string x ∈ L(G).
+
+S =>* τ σ =>* x₁ σ =>* x₁ x₂ = x.
+
+
+- How do we start the algorithm ? ::
+
+We start with σ = S,   Note that in this case x₁ = ε and the string that we are
+about to parse is x₂ = x.  τ = ε
+
+- How does the algorithm proceed ? ::
+
+ (1) σ = a α  where a ∈ Σ. We check whether the first letter of x₂ (i.e. look ahead letter)
+     is a or not. If it is a we proceed with σ = α and we consume the look ahead letter.
+
+ (2) σ = A α where A ∈ Γ.
+
+    We should try out replacing A with γ for some rule A -> γ in the grammar.
+
+    2.a  Let us say that the look ahead character (i.e. the first letter in x₂) is a.
+
+    Consider any rule A -> γ to be applicable if
+
+    FIRST(γ) = { b ∈ Σ | γ => b y for some y ∈ Σ* }, if  the look ahead ∈ FIRST(γ).
+
+    2.b  If A -> γ is rule and suppose γ =>* ε. Then the look ahead should be some letter
+         that follows A.
+
+	 FOLLOW(A) = { b ∈ Σ | there is a derivation S =>* τ₁ A b τ₂ }
+
+
+  - Summarise :: If σ = A α then we will consider the rule A -> γ when
+
+		 i. The look ahead character ∈ FIRST (γ)
+                 ii. γ =>* ε and the look ahead character ∈ FOLLOW(A).
+
+    Suppose there are two rules A -> γ₁ and A -> γ₂ where one the above condition is met.
+    Then such grammars cannot be handled by LL(1).
+
+** LL(1) Parsing table
+
+Rows are indexed by non-terminals and columns are indexed by
+terminals.
+
+A rule A -> γ is put into the (A,a) entry if  (i) a ∈ FIRST (γ) or if
+                                              (ii) γ =>* ε and a ∈ FOLLOW(A).
+
+If one is forced to put two different A -> γ₁ and A -> γ₂ in this
+process then the grammar is not LL(1).
+
+|   | a       | b | c      | d | e |
+|---+---------+---+--------+---+---|
+| A | A -> γ₂ |   | A-> γ₁ |   |   |
+|---+---------+---+--------+---+---|
+| B |         |   |        |   |   |
+|---+---------+---+--------+---+---|
+| C |         |   |        |   |   |
+|---+---------+---+--------+---+---|
+| D |         |   |        |   |   |
+
+
+We give an efficient algorithm to compute the FIRST and FOLLOW set and
+give an efficient algorithm to check whether γ =>* ε.
+
+
+* DONE Introduction                                                     :LAB:
+
+  - Repository :: https://gitlab.com/piyush-kurur/compilers
+
+  - Lab submission ::
+
+		   1. First create a repository on gitlab (rollno-compilers) (private repository)
+		   2. You need to share this repository (readonly repository) to four of us
+		      - Unni
+		      - Haritha
+                      - Kevin
+		      - Me
+		      (do not rebase code once you have published)
+
+		    3. You might want to follow the original compiler repository so you will receive
+		       emails on updates (https://gitlab.com/piyush-kurur/compilers).
+
+		    4. First few things to add to your repository
+
+		       - README.md      : file with your name and roll no
+		       - CHANGELOG.md   : Every week you should put what you have done that week.
+		       - .gitignore     : Files (patterns) listed in this file will be ignored by
+			                  git when it looks for changes, and other things.
+
+					  1. The name of any generated file like excecutable file
+					     or certain sml files that you generate using tools like
+					     ml-yacc ml-lex etc
+					  2. github.com/github/gitignore/TeX.gitignore
+
+			 I will be syncing my repository on Wednesday mornings.
+
+** Aim of this course project.
+
+   Compiler for the language Tiger. Grammar is available in the book and also online.
+
+   - Source language is Tiger.
+
+   - Target language is MIPS assembly language.
+
+   - You can use the SPIM to simulate MIPS machines (to test your compiler output).
+
+
+   You will use the SML language to write your compiler. We will look
+   at various tools that help you write this compiler.
+
+   ~src~ directory where the source of your compiler resides.
+   ~Makefile~ : which would be used to compiler your compiler.
+
+   #+BEGIN_SRC shell
+
+   make tc
+   ..
+   ...
+
+   tc  prog.tig  #  generates prog.mips (which can be run by spim)
+
+
+
+
+   #+END_SRC
+
+   ~tc~ is a standalone tiger compiler. It is written in SML and compiled using
+   mlton.
+
+   In the repository check the subdirectory
+   https://gitlab.com/piyush-kurur/compilers/-/tree/master/reverse-polish
+
+   reverse-polish compiler which takes expression language and generated reverse polish language.
+
+
+** Issue tracker
+
+Make use of the issue tracker
+https://gitlab.com/piyush-kurur/compilers/issues. This issue tracker
+is public so do not put any private info there (like your marks or
+something like that).
+* Introduction to Yacc and Lex                                          :LAB:
+
+
+- Front end of the compiler string -> AST or reports error.
+
+- Main point :: Write a front end for your compiler. Writing a front
+                end of the compiler was considered a challenging
+                task. Early languages kind of had a ad-hoc grammar be
+                cause the parsers were written by hand.
+
+1. Writing the parser by hand
+
+2. The memory was limited which meant things have to be done in
+   multiple passes. In C for example you need to declare a function
+   and also define a function.
+
+
+Writing frontend of the compiler is in many ways the easiest of the
+tasks involved in the compiler. Tools like yacc and lex makes the
+writing of the compiler frontend easy
+
+
+- yacc :: Yet Another Compiler Compiler. You give the grammar and it writes
+	  the parser.
+
+- lex  :: Similar tool for writing the lexical phase.
+
+
+THe over all flow of the front end.
+
+string -> list of tokens  -> parser -> AST.
+            lex               yacc
+
+
+yacc and lex were standard Unix tools where the parser and lexer were
+written in C.
+
+yacc source file -> C file which contains the parser.
+lex source file -> C file which is the lexer.
+
+We are going to use the ML-variant of yacc and lex.
+
+yacc source file -> ml code which is your parser
+lex source file -> ml code which is your lexer.
+
+
+#+BEGIN_SRC
+
+Section 1
+(arbitrary ml code)
+
+%%
+
+Section 2
+
+(define things that control the lex/yacc program)
+
+%command arguments.
+
+%%
+
+
+Section 3
+
+(In the case of yacc you give the grammar and in the case of lex you give the tokeniser).
+
+#+END_SRC
+
+
+
+** Yacc file.
+
+ Section 1 is just ml code (no description here)
+
+*** Section 2
+
+- Terminals and non-terminals :: You need to define what the terminals
+     and non-terminals of your grammar. You define that using %term
+     and %nonterm commands
+  #+BEGIN_SRC
+
+  %term C1
+      | C2
+      | C3 of type  (* these are tokens with some semantic value associated *)
+      | C4 of type
+
+  %nonterm C1
+      | C2 of type (* this nonterminal has some semantic value associated *)
+
+  #+END_SRC
+
+
+- Defining the end of parsing token :: Use %eop
+
+- Verbose :: Generates the ~foo.grm.desc~ file (the description file) good for
+	     debugging %verbose
+
+Please refer to the ML-Yacc manual for more commands and their
+meanings.
+
+*** Section 3 (the actual grammar)
+
+This is the rules for a single non-terminal. You will have multiple of
+them.
+
+
+
+#+BEGIN_SRC
+
+%nonterm NONTERM of τ
+
+%%
+
+NONTERM : PRODUCTION_1     (   ml-expression of type τ )
+        | PRODUCTION_2     (   ml-expression of type τ )
+        | PRODUCTION_3     (   ml-expression of type τ )
+
+#+END_SRC
+
+#+BEGIN_EXAMPLE
+
+A :                   ( ml-code )
+  | LBRAC A RBRAC     ( ml-code )
+  | A A               ( ml-code )
+
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+
+S : A B A C D      (   type of ml-code should be the same as what you have declared for S )
+
+#+END_EXAMPLE
+
+#+BEGIN_EXAMPLE
+A → ε
+  | ( A )
+  | A A
+#+END_EXAMPLE
+
+
+- Both lexer and parser should know what the tokens are.
+
+- But I want to define the tokens of the grammar only in the grm file.
+
+
+- the tokens are defined in .grm file which inturn generates the
+  .grm.sml file (which contains the parsing function). This parsing
+  function has to call the lexing function.
+
+- The lexing function is written in the .lex.sml file by mllex. This lexing function
+  has to use the token datatype which is defined in the .grm file.
+
+#+BEGIN_EXAMPLE
+
+ml-lex writes a lexing function which is defined parameterised by the Token structure.
+
+#+END_EXAMPLE
+
+This command makes sure that %header (functor ExprLexFun(structure Tokens : Expr_TOKENS));
+the output of the lexer looks like
+
+#+BEGIN_SRC sml
+
+functor ExprLexFun(structure Tokens : Expr_TOKENS)  = struct
+
+...
+...
+Tokens.foo
+...
+
+
+end
+
+#+END_SRC
+
+* Implementing function calls
+
+**  Support for functions in typical programming languages.
+
+| Programming Languages | Functions                                      |
+|-----------------------+------------------------------------------------|
+| Fortran 77            | Non-recursive function                         |
+| C                     | recursive but not nested functions             |
+| Pascal                | nested functions but not first class functions |
+| SML, Scheme, Haskell  | First class functions                          |
+|-----------------------+------------------------------------------------|
+
+
+First class functions means that you can do everything to it that you
+can do to values.
+
+Functions are values.
+
+1. You can pass functions as arguments
+
+2. You can return functions as results
+
+3. Functions can be bound to variables
+
+4. You can store functions in data structures.
+
+#+BEGIN_EXAMPLE sml
+
+val foo = fun x => x + 5
+
+#+END_EXAMPLE
+
+C, Java does not support first class functions.
+
+** The Registers, Stack and the Heap.
+
+- Notice :: The Stack is really a stack (as a data structure) but
+	    the heap is not really a heap (as a data structure)
+
+In a program values can be stored in three memory elements.
+
+- Registers :: Limited in numbers
+
+- Stack :: Unlimited (modulo total memory of the computer) but access
+	   is controlled (first in first out style)
+
+
+When a new function is called there additional memory allocated
+(called the frame of the function call) on the stack.
+
+
+   #+BEGIN_EXAMPLE
+
+    [f5     ] -> frame of f5
+    |f4     | -> frame of f4
+    |f3     | -> frame of f3
+    |f2     | -> frame of f2
+    |f1     | -> frame of f1
+
+   #+END_EXAMPLE
+
+   The frame associated with a function call store the local variables
+   of that call.
+
+   Note that a frame is created for each call of the function not the function itself.
+   For example let us say that f calls g and g calls f (recursion). Then how many frames
+   are created
+
+
+   #+BEGIN_EXAMPLE
+
+   |  f |
+   |  g |
+   |  f |
+
+   #+END_EXAMPLE
+
+
+Stack is sufficient to implement recursion but not first class function.
+
+
+- Heap ::  Unlimited memory
+
+  The conceptual model that you need to think of is a memory which you can allocated and free.
+
+  1. There is no first in first out mechanism
+
+  2. Memory needs to be explicitly freed when unused.
+
+  Heap is required to implement first class functions as the example shows.
+
+  #+BEGIN_EXAMPLE sml
+
+  fun foo x = fn y => x + y
+
+  val incr = foo 1
+
+  #+END_EXAMPLE
+
+  The ~x~ in the rhs is bound to the ~x~ which is the parameter. Even
+  when foo terminates the value ~x~ is required. Therefore ~x~ cannot be
+  on the stack for if x was allocated on the frame of ~foo~ then it will
+  cease to exist when ~foo~ exists
+
+** Function closure.
+
+#+BEGIN_EXAMPLE sml
+
+fun foo x = fn y => x + y  (* the variable x is free in the rhs but gets bound by the
+                              argument of foo
+			      *)
+
+val incr = foo 1
+
+#+END_EXAMPLE
+
+You can think of this as.
+
+
+#+BEGIN_EXAMPLE sml
+
+fun foo' x = (fn z => (fn y  => z + y)) x
+
+val incr = foo 1
+
+#+END_EXAMPLE
+
+Notice that ~(fn x => (fn y => x + y))~ is a closed function (i.e. there are no free variables
+in it). We call ~(fn x => (fn y => x + y))~ the /closure/ of the function ~fn y => x + y~
+
+You can implement the closure as a normal C-like function.
+
+You can think of ~foo x~ as the /partial application/ of ~(fn x1 =>
+(fn y => x1 + y))~ on the argument ~x~ of foo.
+
+The way such partially applied functions are implemented is via data structure.
+
+Consider a closed function f with m + k arguments for which only m
+arguments are supplied.  This is represented as a tuple consisting of
+the function address f, the m-supplied arguments a₁,...,aₘ and vacant
+spaces for the rest of the k arguments.
+
+i.e. (fₐ,a₁, a₂ ...,aₘ, □, □,...)
+
+fₐ is the address of the function (function pointer)
+
+And this data structure is called the closure data structure and is
+stored in the heap.
+
+suppose you have a closure  and you want to apply this
+on an additional argument u. We will get the closure
+
+#+BEGIN_EXAMPLE
+
+apply (fₐ,a₁,.....,aₘ,□, □,...) u  -> (fₐ,a₁,.....,aₘ,u, □,...)
+
+(* When the closure gets saturated *)
+
+apply (fₐ,a₁,.....,aₘ,□) u  -> (fₐ,a₁,.....,aₘ,u) ->  call fₐ a1 a2 ... aₘ u
+
+#+END_EXAMPLE
+
+This will continue till one saturates the closure. When the closure is
+/saturated/, i.e.  all the vacant slots are filled up the actual
+function is called on the arguments.
+
+
+Lookup the difference between ~alloca~ and ~malloc~
+
+1. ~alloca~ allocated memory on the stack where as ~malloc~ allocates memory on the heap
+
+   1. The
+
+2. No explicit freeing is required for ~alloca~ where as ~malloc~-ed memory need to be freed.
+
+
+
+** Maintaining stack and heap.
+
+Maintaining the stack is easy if you have contiguous memory.
+
+1. You have a stack pointer sp
+
+2. You have something called the frame pointer fp (not strictly needed)
+
+The last frame is between the frame pointer and the stack pointer.
+
+|       | -> SP
+|       |
+|       |
+|       | -> FP
+|       |
+
+
+When you call a new function f with say some number of arguments. Let n be the
+size of the frame of f. n depends on the local variables, and parameters of f.
+
+Set FP := SP+1 and SP = SP + n.
+
+
+The frame associated with a function looks somewhat like
+
+|----------------+----+--------|
+|----------------+----+--------|
+| local varₖ     | SP |        |
+| ...            |    |        |
+| local var₂     |    |        |
+| local var₁     |    |        |
+|----------------+----+--------|
+| parameterₘ     |    | caller |
+| ....           |    |        |
+| parameter₂     |    |        |
+| parameter₁     |    |        |
+| return address |    |        |
+| previous fp    | FP |        |
+|----------------+----+--------|
+|----------------+----+--------|
+
+
+
+- Exercise :: What happens when one calls the alloca function ?
+
+alloca is sp' = sp + m ; sp = sp + m; return sp'
+
+
+- How is the frame created ?
+
+  Let us say we are excuting the function f and it calls g.
+
+  f is called the /caller/ and g is called the /callee/
+
+  + What part of the frame is created by the caller and what part of it by the callee.
+
+
+  + caller :: pushes the previous fp, pushes the return address and the parameters on to
+	      the stack and jumps to the callee's start address.
+
+  + callee :: allocates enough space for the local variables by
+              incrementing the stack pointer.
+
+	      Continues with its work.
+
+  + On return :: sp = current fp - 1 ; fp = previous fp, push the result on the stack
+		 and return to the return address.
+
+
+
+
+#+BEGIN_EXAMPLE
+ρ is the current environment.
+
+
+
+[ (let x = e in let y = .. in (x + y)) + (let y = e₁ in e₂) ] in the environment ρ
+
+Compiling e in the environment ρ to get a temp tₑ where the value of e is stored.
+
+Create a new tem tₓ for x.
+
+ρ' = ρ [ x := tₓ ]   generate code which assigns tₓ := tₑ (compile exp with ρ')
+
+
+{}
+let x = 2
+
+in { x is mapped to tₓ} ρ'
+
+  let z = ...
+  in
+
+   (let y = 3
+   in { x is mapped to tₓ, z is mapped to t₂; and y is mapped to t₁ } ρ''
+      x := x + y
+      print x
+   )
+
+   additional stuff  the environment is ρ' and not ρ''
+{
+tₓ = 2
+t₁ = 3
+tₓ := tₓ + t₁
+print tₓ
+
+}
+#+END_EXAMPLE
