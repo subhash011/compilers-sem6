@@ -1,11 +1,11 @@
 # Changelog
 
 ## Git commit hashes
-- Lab 6:    bd7b83c94c885a754c4be3078f59e388328cda38
-            Date: 16-05-2021
-            Command: 
-                1. make && ./tc --can file
-                2. make && ./tc --ir file
+- Lab 6:    88222138058450806e1b0c8f86fde600fd28e79b  
+            Date: 16-05-2021  
+            Command:   
+                1. make && ./tc --can file  
+                2. make && ./tc --ir file  
 - Lab 5:    5b3c2fd0b76ae55b2baaacf0bac56fa103d14425
             Date: 28-04-2021
 - Lab 4:    db9ec061dff475798f312874df9d4c3c08612519
