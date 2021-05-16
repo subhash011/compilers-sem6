@@ -96,11 +96,11 @@ struct
             val ir = getIR program
             val linearised = Canon.linearize ir
             val basicBlocks = Canon.basicBlocks linearised
-            (* val traceSchedule = Canon.traceSchedule basicBlocks *)
+            val traceSchedule = Canon.traceSchedule basicBlocks
         in
             (* basicBlocks *)
-            linearised
-            (* traceSchedule *)
+            (* linearised *)
+            traceSchedule
         end
 
     fun getIRCM () = 

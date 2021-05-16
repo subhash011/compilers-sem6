@@ -143,7 +143,9 @@ struct
                         let
                             val jmp = T.JUMP (T.NAME label, [label])
                         in
-                            makeBlocks (rest, [s], (List.rev (jmp::block))::blocks)
+                            case block of
+                                nil => makeBlocks (rest, [s], blocks)
+                                | _ => makeBlocks (rest, [s], (List.rev (jmp::block))::blocks)
                         end
                     (* If its neither a label or a branch instruction, add it current block
                     and continue. *)
