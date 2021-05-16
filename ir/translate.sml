@@ -21,9 +21,13 @@ struct
 
     structure A = Tiger
     structure T = Tree
+    val ReturnAddressRegister = T.TEMP (Temp.newtemp ())
+    val ReturnValueRegister = T.TEMP (Temp.newtemp ())
     val nop = T.EXP (T.CONST 0)
 
     val table: Tree.exp Symbol.table ref = ref Symbol.empty
+    val funcDecTable: Tree.stm Symbol.table ref = ref Symbol.empty
+    val funcTable: (Tree.exp list) Symbol.table ref = ref Symbol.empty
 
     exception TranslationError
     exception Unimplemented of string
@@ -121,6 +125,41 @@ struct
                     (table := Symbol.enter (!table, name, T.TEMP t);
                     T.MOVE (T.TEMP t, exp_trans))
                 end)
+            | A.FunDec {name, args, ret, body} =>
+                let
+                    val funcLabel = Temp.newlabel ()
+                    val jumpfunct = Temp.newlabel ()
+                    val retreg = Temp.newtemp ()
+                    val args_regs = 
+                        let
+                            fun arguments nil = []
+                                | arguments (x::xs) = 
+                                    let
+                                        val t = Temp.newtemp () 
+                                        val {name, type_} = x
+                                    in
+                                        (table := Symbol.enter (!table, name, T.TEMP t));
+                                        (T.TEMP t)::(arguments xs)
+                                    end
+                        in
+                            arguments args
+                        end
+                in
+                    (funcDecTable := Symbol.enter (!funcDecTable, name, T.LABEL funcLabel));
+                    (funcTable := Symbol.enter (!funcTable, name, args_regs));
+                    let
+                        val body_trans = translateExp (body)
+                    in
+                        seq ([
+                            T.JUMP (T.NAME jumpfunct, [jumpfunct]),
+                            T.LABEL funcLabel,
+                            T.MOVE (T.TEMP retreg, ReturnAddressRegister),
+                            T.MOVE (ReturnValueRegister, body_trans),
+                            T.JUMP (T.TEMP retreg, []),
+                            T.LABEL jumpfunct
+                        ])
+                    end
+                end
             |   _ => raise Unimplemented "Declaration")
 
     and translateDecs_ ([]) = [nop]
@@ -185,6 +224,10 @@ struct
         (case exp of
             A.NilExp => T.CONST 0
         |   A.IntExp n => T.CONST n
+        |   A.StringExp _ => raise Unimplemented "Strings"
+        |   A.ArrayExp _ => raise Unimplemented "Arrays"
+        |   A.RecordExp _ => raise Unimplemented "Records"
+        |   A.New _ => raise Unimplemented "Object oriented programming."
         |   A.LetExp {decs, body} => 
                 let
                     val decs_trans = translateDecs (decs)
@@ -196,17 +239,42 @@ struct
                 translateLvalue (lval) 
         |   A.FunctionCall {name, args} =>
                 let
-                    fun args_trans (x::xs) =
+                    val ret = Temp.newlabel ()
+                    val prevret = Temp.newtemp ()
+                    fun merge (a::as_) (b::bs_) = (a, b)::(merge as_ bs_)
+                        | merge [] [] = []
+                        | merge _ _ = raise SyntaxError
+                    
+                    fun args_trans (arg::xs) =
                         let
-                            val x_trans = translateExp (x)
-                        in  
-                            x_trans::(args_trans xs)
+                            val arg_trans = translateExp (arg)
+                        in
+                            (arg_trans)::(args_trans xs)
                         end
                         | args_trans [] = []
+                    
+                    fun move_args ((reg, arg)::xs)=
+                        let
+                            val arg_trans = translateExp (arg)
+                        in
+                            (T.MOVE (reg, arg_trans))::(move_args xs)
+                        end
+                        | move_args [] = []
                 in
-                    case Symbol.look (!table, name) of
-                        SOME l => T.CALL (l, args_trans args)
-                        | NONE => raise UndefinedVariable (Symbol.name name)
+                    case (Symbol.look (!funcDecTable, name), Symbol.look (!funcTable, name)) of
+                        (SOME (T.LABEL flabel), SOME fargs) => 
+                            T.ESEQ (
+                                seq (
+                                    move_args (merge fargs args) @
+                                    [T.MOVE (T.TEMP prevret, ReturnAddressRegister),
+                                    T.MOVE (ReturnAddressRegister, T.NAME ret),
+                                    T.EXP (T.CALL (T.NAME flabel, args_trans args)),
+                                    T.LABEL ret,
+                                    T.MOVE (ReturnAddressRegister, T.TEMP prevret)
+                                    ]
+                                ), ReturnValueRegister
+                            )
+                        | (_, _) => raise UndefinedVariable (Symbol.name name)
                 end
         |   A.Negate exp =>
                 let
@@ -258,15 +326,16 @@ struct
                     val t = Temp.newlabel ()
                     val f = Temp.newlabel ()
                     val c = Temp.newlabel ()
+                    val r = Temp.newtemp()
                     val cond_trans = translateConditionExp (cond)
-                    val succ_trans = Ex (translateExp (succ))
+                    val succ_trans = translateExp (succ)
                     val fail_trans = (case fail of
                                         NONE => NONE
                                         | SOME e => 
                                             let
                                                 val fail_trans = translateExp (e)
                                             in
-                                                SOME (Ex fail_trans)
+                                                SOME fail_trans
                                             end)
                 in
                     case fail_trans of
@@ -275,7 +344,7 @@ struct
                                 seq([
                                     cond_trans (t, c),
                                     T.LABEL t,
-                                    unNx succ_trans,
+                                    unNx (Ex succ_trans),
                                     T.LABEL c
                                 ]), T.CONST 0
                             )
@@ -284,12 +353,12 @@ struct
                                 seq([
                                     cond_trans (t, f),
                                     T.LABEL t,
-                                    unNx succ_trans,
+                                    T.MOVE (T.TEMP r, succ_trans),
                                     T.JUMP (T.NAME c, [c]),
                                     T.LABEL f,
-                                    unNx trans,
+                                    T.MOVE (T.TEMP r, trans),
                                     T.LABEL c
-                                ]), T.CONST 0
+                                ]), T.TEMP r
                             )
                 end
         |   A.WhileExp {cond, body} =>
@@ -318,24 +387,30 @@ struct
                     val continue = Temp.newlabel ()
                     val test = Temp.newlabel ()
                     val init_exp = translateExp (exp)
-                    val cond_trans = translateConditionExp (exit_cond)
-                    val body_trans = translateExp (body)
+                    val cond_trans = translateExp (exit_cond)
                 in
-                    (table := Symbol.enter (!table, name, T.TEMP t));
-                    T.ESEQ (
-                        seq ([
-                            T.MOVE (T.TEMP t, init_exp),
-                            T.LABEL test,
-                            cond_trans (continue, done),
-                            T.LABEL continue,
-                            unNx (Ex body_trans),
-                            T.JUMP (T.NAME test, [test]),
-                            T.LABEL done
-                        ]), T.CONST 0
-                    )
+                    table := Symbol.enter (!table, name, T.TEMP t);
+                    let
+                        val body_trans = translateExp (body)
+                    in
+                        T.ESEQ (
+                            seq ([
+                                T.MOVE (T.TEMP t, init_exp),
+                                T.LABEL test,
+                                T.CJUMP (T.LT, T.TEMP t, cond_trans, continue, done),
+                                T.LABEL continue,
+                                T.MOVE (T.TEMP t, T.BINOP (T.PLUS, T.TEMP t, T.CONST 1)),
+                                unNx (Ex body_trans),
+                                T.JUMP (T.NAME test, [test]),
+                                T.LABEL done
+                            ]), T.CONST 0
+                        )
+                    end
                 end
-        |   _ => raise Unimplemented "Expression" )
+        |   A.BreakExp => raise Unimplemented "break"
+        |   _ => raise Unimplemented "Expression" 
         handle UndefinedVariable x => (print ("Undefined variable: " ^ x ^ "\n"); OS.Process.exit OS.Process.failure)
         handle Unimplemented x => (print ("Unimplemented Translation: " ^ x ^ "\n"); OS.Process.exit OS.Process.failure)
+        )
 
 end
