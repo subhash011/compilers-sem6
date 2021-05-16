@@ -99,8 +99,8 @@ struct
             val traceSchedule = Canon.traceSchedule basicBlocks
         in
             (* basicBlocks *)
-            linearised
-            (* traceSchedule *)
+            (* linearised *)
+            traceSchedule
         end
 
     fun getIRCM () = 

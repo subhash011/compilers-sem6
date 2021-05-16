@@ -21,11 +21,14 @@ struct
 
     structure A = Tiger
     structure T = Tree
+    (* Some special registers for return address and return value *)
     val ReturnAddressRegister = T.TEMP (Temp.newtemp ())
     val ReturnValueRegister = T.TEMP (Temp.newtemp ())
     val nop = T.EXP (T.CONST 0)
 
+    (* holds variable mappings *)
     val table: Tree.exp Symbol.table ref = ref Symbol.empty
+    (* holds function mappings *)
     val funcDecTable: Tree.stm Symbol.table ref = ref Symbol.empty
     val funcTable: (Tree.exp list) Symbol.table ref = ref Symbol.empty
 
@@ -89,7 +92,7 @@ struct
                         seq ([
                             (unCx e1) (t, f),
                             T.LABEL t,
-                            unNx e2,
+                            unNx e2, (* If there is no else, we perform side effects. *)
                             T.LABEL f
                         ]), T.CONST 0
                     )
@@ -145,14 +148,17 @@ struct
                             arguments args
                         end
                 in
+                    (* make an entry of the function *)
                     (funcDecTable := Symbol.enter (!funcDecTable, name, T.LABEL funcLabel));
+                    (* make an entry of the function and its args, this is where the caller will pass its
+                    arguments *)
                     (funcTable := Symbol.enter (!funcTable, name, args_regs));
                     let
                         val body_trans = translateExp (body)
                     in
                         seq ([
-                            T.JUMP (T.NAME jumpfunct, [jumpfunct]),
-                            T.LABEL funcLabel,
+                            T.JUMP (T.NAME jumpfunct, [jumpfunct]), (* we dont want to skip the function if its in the begining. *)
+                            T.LABEL funcLabel, 
                             T.MOVE (T.TEMP retreg, ReturnAddressRegister),
                             T.MOVE (ReturnValueRegister, body_trans),
                             T.JUMP (T.TEMP retreg, []),
@@ -409,8 +415,8 @@ struct
                 end
         |   A.BreakExp => raise Unimplemented "break"
         |   _ => raise Unimplemented "Expression" 
-        handle UndefinedVariable x => (print ("Undefined variable: " ^ x ^ "\n"); OS.Process.exit OS.Process.failure)
         handle Unimplemented x => (print ("Unimplemented Translation: " ^ x ^ "\n"); OS.Process.exit OS.Process.failure)
+        handle UndefinedVariable x => (print ("Undefined variable: " ^ x ^ "\n"); OS.Process.exit OS.Process.failure)
         )
 
 end

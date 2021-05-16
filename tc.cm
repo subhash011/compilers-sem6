@@ -3,6 +3,7 @@ Library
     structure Tiger
     structure Tree
     structure Symbol
+    structure Temp
 is
     util/table.sml
     util/symbol.sml

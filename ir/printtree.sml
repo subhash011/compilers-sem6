@@ -12,7 +12,7 @@ struct
         fun sayln s= (say s; say "\n") 
 
         fun indent 0 = ()
-            | indent i = (say " "; indent(i-1))
+            | indent i = (say "    "; indent(i-1))
 
         fun stm(T.SEQ(a,b),d) =
                 (indent d; sayln "SEQ("; stm(a,d+1); sayln ","; stm(b,d+1); say ")")
@@ -30,7 +30,7 @@ struct
         and exp(T.BINOP(p,a,b),d) = (indent d; say "BINOP("; binop p; sayln ",";
                         exp(a,d+1); sayln ","; exp(b,d+1); say ")")
             | exp(T.MEM(e),d) = (indent d; sayln "MEM("; exp(e,d+1); say ")")
-            | exp(T.TEMP t, d) = (indent d; say "TEMP t"; say(Int.toString t))
+            | exp(T.TEMP t, d) = (indent d; say "TEMP T"; say(Int.toString t))
             | exp(T.ESEQ(s,e),d) = (indent d; sayln "ESEQ("; stm(s,d+1); sayln ",";
                     exp(e,d+1); say ")")
             | exp(T.NAME lab, d) = (indent d; say "NAME "; say (Symbol.name lab))
