@@ -1,12 +1,24 @@
 # Changelog
 
 ## Git commit hashes
-- Lab 6: 
-- Lab 5: 5b3c2fd0b76ae55b2baaacf0bac56fa103d14425
-- Lab 4: db9ec061dff475798f312874df9d4c3c08612519
-- Lab 3: ff7e944fdae54ff0c9d32877d207f701544cd458
+- Lab 6:    bd7b83c94c885a754c4be3078f59e388328cda38
+            Date: 16-05-2021
+            Command: 
+                1. make && ./tc --can file
+                2. make && ./tc --ir file
+- Lab 5:    5b3c2fd0b76ae55b2baaacf0bac56fa103d14425
+            Date: 28-04-2021
+- Lab 4:    db9ec061dff475798f312874df9d4c3c08612519
+            Date: 30-03-2021
+- Lab 3:    ff7e944fdae54ff0c9d32877d207f701544cd458
+            Date: 22-03-2021
 
-
+### 16-05-2021
+- Complete translation from tiger to tree
+- Added printtree.sml to print treees
+- Command: 
+    1. make && ./tc --can file - To print the canonized version of the tree.
+    2. make && ./tc --ir file - To print the intermediate representation.
 ### 29-04-2021
 - Added translate.sml
 - Completed adding structures are conversion functions for translate.sml
