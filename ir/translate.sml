@@ -108,36 +108,36 @@ struct
                     end)
         end
     
-    fun translate (A.Expr exp) = T.EXP (translateExp (table, exp))
-        | translate (A.Decs decs) = translateDecs (table, decs)
+    fun translate (A.Expr exp) = T.EXP (translateExp (exp))
+        | translate (A.Decs decs) = translateDecs (decs)
 
-    and translateDec (table, dec) =
+    and translateDec (dec) =
         (case dec of
-            (A.VarDec {name, type_, init}) =>
+            A.VarDec {name, type_, init} =>
                 (let
                     val t = Temp.newtemp()
-                    val exp_trans = translateExp (table, init)
+                    val exp_trans = translateExp (init)
                 in
                     (table := Symbol.enter (!table, name, T.TEMP t);
                     T.MOVE (T.TEMP t, exp_trans))
                 end)
-        |   _ => raise Unimplemented "Declaration")
+            |   _ => raise Unimplemented "Declaration")
 
-    and translateDecs_ (table, []) = [nop]
-        | translateDecs_ (table, (x::xs)) = (translateDec (table, x)) 
-                                        :: (translateDecs_ (table, xs))
+    and translateDecs_ ([]) = [nop]
+        | translateDecs_ ((x::xs)) = (translateDec (x)) 
+                                        :: (translateDecs_ (xs))
 
-    and translateDecs (table, []) = nop
-        | translateDecs (table, ls) = seq (translateDecs_ (table, ls))
+    and translateDecs ([]) = nop
+        | translateDecs (ls) = seq (translateDecs_ (ls))
 
-    and translateExps_ (table, []) = T.CONST 0
-        | translateExps_ (table, (x::xs)) =
-            T.ESEQ (T.EXP (translateExp (table, x)), (translateExps_ (table, xs)))
+    and translateExps_ ([]) = T.CONST 0
+        | translateExps_ ((x::xs)) =
+            T.ESEQ (T.EXP (translateExp (x)), (translateExps_ (xs)))
 
-    and translateExps (table, []) = T.CONST 0
-        | translateExps (table, ls) = translateExps_ (table, ls)
+    and translateExps ([]) = T.CONST 0
+        | translateExps (ls) = translateExps_ (ls)
 
-    and translateLvalue (table, lval) =
+    and translateLvalue (lval) =
         (case lval of
             A.SimpleVar v => 
                 let
@@ -150,7 +150,7 @@ struct
         |   A.FieldVar {object, name} => raise Unimplemented "Field Variable"
         |   A.SubscriptVar {object, index} => raise Unimplemented "Subscript Variable")
 
-    and translateConditionExp (table, exp) =
+    and translateConditionExp (exp) =
         case exp of
             A.IntExp n =>
                 (case n of
@@ -161,7 +161,7 @@ struct
                     val oper' = (case oper of
                         A.Eq => RelOp T.EQ
                     |   A.Ne => RelOp T.NE
-                    |   A.Gt => RelOp T.GE
+                    |   A.Gt => RelOp T.GT
                     |   A.Lt => RelOp T.LT
                     |   A.Ge => RelOp T.GE
                     |   A.Le => RelOp T.LE
@@ -169,34 +169,55 @@ struct
                 in
                     case oper' of
                         RelOp oper => 
-                            (fn (succ, fail) => T.CJUMP (oper, translateExp (table, left), translateExp (table, right), succ, fail))
+                            (fn (succ, fail) => T.CJUMP (oper, translateExp (left), translateExp (right), succ, fail))
                         | _ => raise TranslationError
+                end
+            | A.SeqExp exps =>
+                let
+                    val len = List.length exps
+                    val last = List.nth (exps, len - 1)
+                in
+                    translateConditionExp (last)
                 end
             | _ => raise SyntaxError
 
-    and translateExp (table, exp) = 
+    and translateExp (exp) = 
         (case exp of
             A.NilExp => T.CONST 0
         |   A.IntExp n => T.CONST n
         |   A.LetExp {decs, body} => 
                 let
-                    val decs_trans = translateDecs (table, decs)
-                    val body_trans = translateExps (table, body)
+                    val decs_trans = translateDecs (decs)
+                    val body_trans = translateExps (body)
                 in
                     T.ESEQ (decs_trans, body_trans)
                 end
         |   A.LvalExp lval => 
-                translateLvalue (table, lval) 
+                translateLvalue (lval) 
+        |   A.FunctionCall {name, args} =>
+                let
+                    fun args_trans (x::xs) =
+                        let
+                            val x_trans = translateExp (x)
+                        in  
+                            x_trans::(args_trans xs)
+                        end
+                        | args_trans [] = []
+                in
+                    case Symbol.look (!table, name) of
+                        SOME l => T.CALL (l, args_trans args)
+                        | NONE => raise UndefinedVariable (Symbol.name name)
+                end
         |   A.Negate exp =>
                 let
-                    val exp_trans = translateExp (table, exp)
+                    val exp_trans = translateExp (exp)
                 in
                     T.BINOP (T.MINUS, T.CONST 0, exp_trans)
                 end
         |   A.OpExp {left, oper, right} =>
                 let
-                    val left_trans = translateExp (table, left)
-                    val right_trans = translateExp (table, right)
+                    val left_trans = translateExp (left)
+                    val right_trans = translateExp (right)
                     val oper' = (case oper of
                         A.Plus => BinOp T.PLUS
                     |   A.Minus => BinOp T.MINUS
@@ -224,11 +245,11 @@ struct
                             end
                             
                 end
-        |   A.SeqExp exps => translateExps (table, exps)
+        |   A.SeqExp exps => translateExps (exps)
         |   A.AssignExp {object, exp} =>
                 let
-                    val lval = translateLvalue (table, object)
-                    val exp = translateExp (table, exp)
+                    val lval = translateLvalue (object)
+                    val exp = translateExp (exp)
                 in
                     unEx (Nx (T.MOVE (lval, exp)))
                 end
@@ -237,15 +258,13 @@ struct
                     val t = Temp.newlabel ()
                     val f = Temp.newlabel ()
                     val c = Temp.newlabel ()
-                    val cond_trans = translateConditionExp (table, cond)
-                    (* val cond_trans = translateExp (table, cond)
-                    val cond_trans = unCx (Ex cond_trans) *)
-                    val succ_trans = unNx (Ex (translateExp (table, succ)))
+                    val cond_trans = translateConditionExp (cond)
+                    val succ_trans = Ex (translateExp (succ))
                     val fail_trans = (case fail of
                                         NONE => NONE
                                         | SOME e => 
                                             let
-                                                val fail_trans = translateExp (table, e)
+                                                val fail_trans = translateExp (e)
                                             in
                                                 SOME (Ex fail_trans)
                                             end)
@@ -256,7 +275,7 @@ struct
                                 seq([
                                     cond_trans (t, c),
                                     T.LABEL t,
-                                    succ_trans,
+                                    unNx succ_trans,
                                     T.LABEL c
                                 ]), T.CONST 0
                             )
@@ -265,7 +284,7 @@ struct
                                 seq([
                                     cond_trans (t, f),
                                     T.LABEL t,
-                                    succ_trans,
+                                    unNx succ_trans,
                                     T.JUMP (T.NAME c, [c]),
                                     T.LABEL f,
                                     unNx trans,
@@ -278,8 +297,8 @@ struct
                     val test = Temp.newlabel ()
                     val done = Temp.newlabel ()
                     val continue = Temp.newlabel ()
-                    val cond_trans = translateConditionExp (table, cond)
-                    val body_trans = translateExp (table, body)
+                    val cond_trans = translateConditionExp (cond)
+                    val body_trans = translateExp (body)
                 in
                     T.ESEQ (
                         seq ([
@@ -298,9 +317,9 @@ struct
                     val done = Temp.newlabel ()
                     val continue = Temp.newlabel ()
                     val test = Temp.newlabel ()
-                    val init_exp = translateExp (table, exp)
-                    val cond_trans = translateConditionExp (table, exit_cond)
-                    val body_trans = translateExp (table, body)
+                    val init_exp = translateExp (exp)
+                    val cond_trans = translateConditionExp (exit_cond)
+                    val body_trans = translateExp (body)
                 in
                     (table := Symbol.enter (!table, name, T.TEMP t));
                     T.ESEQ (
