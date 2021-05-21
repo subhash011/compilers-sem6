@@ -79,6 +79,7 @@ struct
         | unCx (Cx func) = func
         | unCx (e as Nx s) = unCx (Ex (unEx e))
 
+    (* Stores the current context of the break statement. *)
     val curBreak: Temp.label ref = ref (Temp.namedlabel "NONE")
 
     fun printErrorString s =    (TextIO.output(TextIO.stdErr, s); OS.Process.exit OS.Process.failure)
@@ -92,8 +93,10 @@ struct
     datatype Op = RelOp of Tree.relop
                 | BinOp of Tree.binop
 
+    (* Translate the ast. *)
     fun transTiger (venv, curFrame, A.Expr exp) = transExp (venv, curFrame) exp
         | transTiger (venv, curFrame, A.Decs decs) =  
+            (* Translating list of declaration *)
             let
                 fun trdecs venv [] = []
                     | trdecs venv [x] = 
@@ -123,11 +126,13 @@ struct
                         let
                             val local_ = F.allocLocal curFrame false
                             val dest = (F.getAccessExp local_) (T.TEMP F.FP)
+                            (* Add the declared variable and modify the environment. *)
                             val venv' = Symbol.enter (
                                 venv,
                                 name,
                                 E.VarEntry {access=local_, type_=type_}
                             )
+                            (* translate the initialiser *)
                             val init = transExp (venv', curFrame) init
                         in
                             (venv', T.MOVE (dest, init))
@@ -173,10 +178,10 @@ struct
                                 ) body
                         in
                             (venv', seq ([
-                                    T.JUMP (T.NAME skipFuncLabel, [skipFuncLabel]),
+                                    T.JUMP (T.NAME skipFuncLabel, [skipFuncLabel]), (* Slip the function if not from CALL *)
                                     T.LABEL funcLabel,
                                     T.MOVE (T.TEMP F.RV, body),
-                                    T.JUMP (RA, []),
+                                    T.JUMP (RA, []), (* Jump to Return address on stack. *)
                                     T.LABEL skipFuncLabel
                                 ])
                             )
@@ -193,6 +198,7 @@ struct
             fun trvar var =
             (case var of
                 A.SimpleVar id =>
+                    (* If variable exists in the environment, translate it *)
                     (case S.look (venv, id) of
                         NONE => raise Undefined ("variable declaration for \"" ^ (Symbol.name id) ^ "\" not found.")
                     |   SOME enventry =>
@@ -202,6 +208,9 @@ struct
                                                         \ did you mean to call a function ?"))
                     )
             |   _ => raise Unimplemented "Arrays and records")
+            (*  The below function is used to translate if else statements
+                without a list of statements (SeqExp). If it has a 'then', it
+                returns else it performs side-effect tasks. *)
             and trcep {cond, succ, fail} =
                 let
                     val t = Temp.newlabel ()
@@ -238,6 +247,7 @@ struct
                                 ]), T.TEMP result
                             )
                 end
+            (* Translate list of expressions and return the value of the last expression *)
             and trexps [] = T.CONST 0
                 | trexps [x] = trexp x
                 | trexps (x::xs) = T.ESEQ (T.EXP (trexp x), trexps xs)
@@ -320,17 +330,20 @@ struct
                         in
                             T.ESEQ (
                                 seq ([
-                                        pushFP,
-                                        pushRetAddr
-                                    ] @ pushLocals locals 3
-                                      @ pushArgs args (numLocals + 3) @ [
-                                        moveFP,
+                                        pushFP, (* push frame pointer onto the stack *)
+                                        pushRetAddr (* push return address *)
+                                    ] @ pushLocals locals 3 (* move local arguments from register to stack. *)
+                                      @ pushArgs args (numLocals + 3) @ [ (* push function parameters. *)
+                                        moveFP, (* move frame pointer and stack pointer. *)
                                         moveSP,
-                                        funcCall,
-                                        T.LABEL returnLabel,
-                                        resetSP,
+                                        funcCall, (* Call the function. *)
+                                        T.LABEL returnLabel, (* function returns here. *)
+                                        resetSP, (* delete the frame *)
                                         resetFP
-                                    ] @ restoreLocals locals 3), T.TEMP F.RV
+                                    ] @ restoreLocals locals 3), 
+                                    (*  this call returns the value in the special RV register which stores the
+                                        function output.*)
+                                    T.TEMP F.RV
                             )
                         end
                 |   A.MethodCall {object, name, args} => raise Unimplemented "Classes and methods"
@@ -364,6 +377,8 @@ struct
                         in
                             case oper' of
                                 BinOp oper =>
+                                    (*  OR and AND must be handled specially. They return 1 for true
+                                        and 0 for false. *)
                                     (case oper of
                                             T.AND => 
                                             let
@@ -433,6 +448,8 @@ struct
                             val finish = Temp.newlabel ()
                             val continue = Temp.newlabel ()
                             val cond = unCx (Ex (trexp cond))
+                            (*  the curBreak stores the finish label of this
+                                to jump to the end when called. *)
                             val body = (curBreak := finish; trexp body)
                         in
                             T.ESEQ (
@@ -456,6 +473,8 @@ struct
                             val exit_cond = trexp exit_cond
                             val vardec = A.VarDec {name=name, type_=NONE, init=exp}
                             val (venv', dec) = transDec (venv, curFrame) vardec
+                            (*  the curBreak stores the finish label of this
+                                to jump to the end when called. *)
                             val body = (curBreak := finish; transExp (venv', curFrame) body)
                         in
                             T.ESEQ (
@@ -491,12 +510,14 @@ struct
                                     in
                                         (venv', dec::decs)
                                     end
+                            (* Modify the environment with variable declarations. *)
                             val (venv', decs) =
                                 let
                                     val (venv', decs) = trdecs (venv, decs)
                                 in
                                     (venv', seq decs)
                                 end
+                            (* Build the body using the modified expression. *)
                             val body = transExp (venv', curFrame) (A.SeqExp body)
                         in
                             T.ESEQ (decs, body)
@@ -509,6 +530,7 @@ struct
     fun transProg ast =
         let
             val venv = E.base_venv
+            (* the initial frame named main. *)
             val curFrame = F.newFrame {
                 name=Temp.namedlabel "main",
                 args = []

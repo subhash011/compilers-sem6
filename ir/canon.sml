@@ -239,6 +239,8 @@ struct
                 | pickBlock (nil, table) = nil
             val table = addBlocksToTable blocks
             val trace = pickBlock (blocks, table) @ [T.LABEL done]
+            (*  Remove statements with no side effects in the trace
+                since they don't mean anything. *)
             fun removeUnwanted [] = []
                 | removeUnwanted (x::xs) =
                     (case x of

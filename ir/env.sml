@@ -13,7 +13,7 @@ end
 
 structure Env: ENV =
 struct
-
+    (* This is the environment used to store variables and functions *)
     datatype enventry = VarEntry of {access: Frame.access, type_: Symbol.symbol option}
                       | FunEntry of {
                             frame: Frame.frame, 
