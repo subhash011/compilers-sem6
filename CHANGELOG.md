@@ -2,7 +2,7 @@
 
 ## Git commit hashes
 ```
-Lab 6:  096f7d8a21110ff8f17fa9238115084d2b86eb01  
+Lab 6:  9c5bef4527f11b79369ff5c6b91fc58601e44a52  
         Date: 21-05-2021  
         Command:   
             1. Use `make` to generate the binary `tc`  
