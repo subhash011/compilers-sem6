@@ -31,9 +31,6 @@ Useful Make options
 - The final output is in the root directory of the project.
 ```
 1. Use './tc --help' for help on how to run the binary.
-2. To print the AST use './tc --ast filename'
-3. To pretty print the source code use './tc --fmt filename'
-4. To pretty print the source code along with syntax highlighting, use './tc --pp filename'
 ```
 
 `Makefile`

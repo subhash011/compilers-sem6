@@ -1,17 +1,36 @@
 # Changelog
 
 ## Git commit hashes
-- Lab 6:    88222138058450806e1b0c8f86fde600fd28e79b  
-            Date: 16-05-2021  
-            Command:   
-                1. make && ./tc --can file  
-                2. make && ./tc --ir file  
-- Lab 5:    5b3c2fd0b76ae55b2baaacf0bac56fa103d14425
-            Date: 28-04-2021
-- Lab 4:    db9ec061dff475798f312874df9d4c3c08612519
-            Date: 30-03-2021
-- Lab 3:    ff7e944fdae54ff0c9d32877d207f701544cd458
-            Date: 22-03-2021
+```
+Lab 6:  9c5bef4527f11b79369ff5c6b91fc58601e44a52  
+        Date: 21-05-2021  
+        Command:   
+            1. Use `make` to generate the binary `tc`  
+            2. `./tc --can file` - To get canonized IR  
+            3. `./tc --ir file` - To get the IR  
+```
+```
+Lab 5:  5b3c2fd0b76ae55b2baaacf0bac56fa103d14425  
+        Date: 28-04-2021  
+        Command:  
+            1. Use `make` to generate the binary `tc`  
+            2. `./tc --help` - Help regarding command line args.  
+            3. `./tc --pp` - Pretty print Tiger code.  
+            4. `./tc --fmt` - Pretty print without syntax highlighting Tiger code.  
+            5. `./tc --ast` - Print AST of Tiger code.  
+```
+```
+Lab 4:  db9ec061dff475798f312874df9d4c3c08612519
+        Date: 30-03-2021
+```
+```
+Lab 3:  ff7e944fdae54ff0c9d32877d207f701544cd458
+        Date: 22-03-2021
+```
+
+### 21-05-2021
+- Used frames to implement functions, now supporting recursion
+- Fixed errors in converting conditional expressions.
 
 ### 16-05-2021
 - Complete translation from tiger to tree
