@@ -2,7 +2,7 @@
 
 ## Git commit hashes
 ```
-Lab 6:  9c5bef4527f11b79369ff5c6b91fc58601e44a52  
+Lab 6:  382bb13433be429306a005ac3b7473e6895b409d  
         Date: 21-05-2021  
         Command:   
             1. Use `make` to generate the binary `tc`  
@@ -31,6 +31,7 @@ Lab 3:  ff7e944fdae54ff0c9d32877d207f701544cd458
 ### 21-05-2021
 - Used frames to implement functions, now supporting recursion
 - Fixed errors in converting conditional expressions.
+- Exception handling and removing unwanted EXP's from trace.
 
 ### 16-05-2021
 - Complete translation from tiger to tree
