@@ -1,29 +1,10 @@
 let
     var a := 1
+    function nfactor(n: int): int =
+        if  n = 0 
+            then 1
+            else 2
+
 in
-    
-end
-/* let
-    var a := 42
-    function m() = print("m()\n")
-
-    class C
-    {
-      var a := 51
-      method m() = print("C.m()\n")
-
-      method print_a()      = (print_int(a); print("\n"))
-      method print_self_a() = (print_int(self.a); print("\n"))
-
-      method call_m()      = m()
-      method call_self_m() = self.m()
-    }
-
-    var c := new C
-  in
-    c.print_a();       /* Print `42'.  */
-    c.print_self_a();  /* Print `51'.  */
-
-    c.call_m();        /* Print `m()'.  */
-    c.call_self_m()    /* Print `C.m()'.  */
-  end */
+    a := 1 + nfactor(10)
+end 

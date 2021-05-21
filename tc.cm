@@ -4,6 +4,10 @@ Library
     structure Tree
     structure Symbol
     structure Temp
+    structure Frame
+    structure Env
+    structure Canon
+    structure Semant
 is
     util/table.sml
     util/symbol.sml
@@ -17,8 +21,11 @@ is
     ir/tree.sig
     ir/tree.sml
     ir/temp.sml
+    ir/frame.sml
     ir/printtree.sml
     ir/translate.sml
+    ir/env.sml
+    ir/semant.sml
     ir/canon.sml
     tc.sml
     $/basis.cm
