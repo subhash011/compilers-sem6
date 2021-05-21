@@ -1,0 +1,4 @@
+val t = Temp.newlabel ();
+val f = Temp.newlabel ();
+val z = Temp.newlabel ();
+SEQ(CJUMP (GT, TEMP 1, TEMP 2, t, z), SEQ (LABEL z, CJUMP (LT, TEMP 3, TEMP 4, t, f)));

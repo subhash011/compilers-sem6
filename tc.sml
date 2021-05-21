@@ -130,19 +130,8 @@ struct
                     PrintAST.print program
                 end
             | _ => raise InvalidArgument
-    
-    fun tester () =
-        let
-            val (program,_) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ());
-            val ir = Semant.transProg program
-            val linearised = Canon.linearize ir
-            val basicBlocks = Canon.basicBlocks linearised
-            val traceSchedule = Canon.traceSchedule basicBlocks
-        in
-            printCanon traceSchedule
-        end
 
-    val (program,_) = TigerParser.parse (0, thisLexer, print_error, ());
+    (* val (program,_) = TigerParser.parse (0, thisLexer, print_error, ());
 
     val _   =   if !fmt 
             then (PP.compile program (!toCol); ()) 
@@ -152,5 +141,5 @@ struct
             then printIR (getIR program)
             else if !can
             then printCanon (getCanon program)
-            else ()
+            else () *)
 end

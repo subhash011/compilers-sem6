@@ -20,23 +20,44 @@ struct
     structure S = Symbol
     structure F = Frame
     structure E = Env
-    exception Error
-    exception Unimplemented
-    exception SyntaxError
     exception TranslationError
+    exception SyntaxError of string
+    exception Unimplemented of string
     exception Undefined of string
+
+    val curBreak: Temp.label ref = ref (Temp.namedlabel "NONE")
 
     fun map f l = foldr (fn (x,a) => (f x)::a) [] l
 
     fun merge (a::as_) (b::bs_) = (a, b)::(merge as_ bs_)
                         | merge [] [] = []
-                        | merge _ _ = raise SyntaxError
+                        | merge _ _ = raise SyntaxError "invalid number of args supplied"
 
     datatype Op = RelOp of Tree.relop
                 | BinOp of Tree.binop
 
     fun transTiger (venv, curFrame, A.Expr exp) = transExp (venv, curFrame) exp
-        | transTiger (venv, curFrame, A.Decs decs) = raise Error
+        | transTiger (venv, curFrame, A.Decs decs) =  
+            let
+                fun trdecs venv [] = []
+                    | trdecs venv [x] = 
+                        let 
+                            val (_, stm) = transDec (venv, curFrame) x
+                        in
+                            [stm]
+                        end
+                    | trdecs venv (x::xs) = 
+                        let 
+                            val (venv', stm) = transDec (venv, curFrame) x
+                        in
+                            stm::(trdecs venv' xs)
+                        end
+            in
+                T.ESEQ (
+                    Tr.seq (trdecs venv decs),
+                    T.CONST 0
+                )
+            end
 
     and transDec (venv, curFrame) =
         let
@@ -77,10 +98,9 @@ struct
                                     in
                                         venv'
                                     end
-                            val venv' = addArgsToEnv (venv, merge args (F.args newFrame))
                             val RA = T.BINOP (T.MINUS, T.TEMP F.FP, T.CONST F.ws) 
                             val venv' = Symbol.enter (
-                                venv',
+                                venv,
                                 name,
                                 E.FunEntry {
                                     frame=newFrame,
@@ -89,7 +109,12 @@ struct
                                     ret=ret
                                 }
                             )
-                            val body = transExp (venv', curFrame) body
+                            val body = transExp (
+                                addArgsToEnv (venv', 
+                                    merge args (F.args newFrame)
+                                ), 
+                                curFrame
+                                ) body
                         in
                             (venv', Tr.seq ([
                                     T.JUMP (T.NAME skipFuncLabel, [skipFuncLabel]),
@@ -100,9 +125,9 @@ struct
                                 ])
                             )
                         end
-                |   A.TypeDec _ => raise Unimplemented
-                |   A.ClassDec _ => raise Unimplemented
-                |   A.PrimitiveDec _ => raise Unimplemented)
+                |   A.TypeDec _ => raise Unimplemented "Type declaration"
+                |   A.ClassDec _ => raise Unimplemented "Class declaration"
+                |   A.PrimitiveDec _ => raise Unimplemented "Primitive declaration")
         in
             trdec
         end
@@ -119,51 +144,55 @@ struct
                                 E.VarEntry {access, type_} => (F.getAccessExp access) (T.TEMP F.FP)
                             |   _ => raise Undefined (Symbol.name id))
                     )
-            |   _ => raise Unimplemented)
-            and trcep exp =
-                (case exp of
-                    A.IntExp n =>
-                        (case n of
-                            0 => Tr.unCx (Tr.Ex (T.CONST 0))
-                            | _ => Tr.unCx (Tr.Ex (T.CONST 1)))
-                    | A.OpExp {left, oper, right} =>
-                        let
-                            val oper' = (case oper of
-                                A.Eq => RelOp T.EQ
-                            |   A.Ne => RelOp T.NE
-                            |   A.Gt => RelOp T.GT
-                            |   A.Lt => RelOp T.LT
-                            |   A.Ge => RelOp T.GE
-                            |   A.Le => RelOp T.LE
-                            |   _ => raise SyntaxError)
-                        in
-                            case oper' of
-                                RelOp oper => 
-                                    (fn (succ, fail) => T.CJUMP (oper, trexp left, trexp right, succ, fail))
-                                | _ => raise TranslationError
-                        end
-                    | A.SeqExp exps =>
-                        let
-                            val len = List.length exps
-                            val last = List.nth (exps, len - 1)
-                        in
-                            trcep last
-                        end
-                    | _ => raise SyntaxError)
-            and trexps_ [] = T.CONST 0
-                | trexps_ (x::xs) =
-                    T.ESEQ (T.EXP (trexp x), trexps_ xs)
+            |   _ => raise Unimplemented "Arrays and records")
+            and trcep {cond, succ, fail} =
+                let
+                    val t = Temp.newlabel ()
+                    val f = Temp.newlabel ()
+                    val finish = Temp.newlabel ()
+                    val result = Temp.newtemp ()
+                    val cond = Tr.unCx (Tr.Ex (trexp cond))
+                    val succ = trexp succ
+                    val fail = 
+                        (case fail of
+                            NONE => NONE
+                        |   SOME e => SOME (trexp e))
+                in
+                    case fail of
+                        NONE =>
+                            T.ESEQ (
+                                Tr.seq ([
+                                    cond (t, finish),
+                                    T.LABEL t,
+                                    Tr.unNx (Tr.Ex succ),
+                                    T.LABEL finish
+                                ]), T.CONST 0
+                            )
+                    |   SOME fail =>
+                            T.ESEQ (
+                                Tr.seq([
+                                    cond (t, f),
+                                    T.LABEL t,
+                                    T.MOVE (T.TEMP result, succ),
+                                    T.JUMP (T.NAME finish, [finish]),
+                                    T.LABEL f,
+                                    T.MOVE (T.TEMP result, fail),
+                                    T.LABEL finish
+                                ]), T.TEMP result
+                            )
+                end
             and trexps [] = T.CONST 0
-                | trexps ls = trexps_ ls
+                | trexps [x] = trexp x
+                | trexps (x::xs) = T.ESEQ (T.EXP (trexp x), trexps xs)
             and trexp exp = 
                 (case exp of
                     A.NilExp => T.CONST 0
                 |   A.IntExp i => T.CONST i
-                |   A.StringExp _ => raise Unimplemented
-                |   A.ArrayExp _ => raise Unimplemented
-                |   A.RecordExp _ => raise Unimplemented
-                |   A.New _ => raise Unimplemented
-                |   A.LvalExp e => trvar e
+                |   A.StringExp _ => raise Unimplemented "Strings"
+                |   A.ArrayExp _ => raise Unimplemented "Arrays"
+                |   A.RecordExp _ => raise Unimplemented "Records"
+                |   A.New _ => raise Unimplemented "Objects"
+                |   A.LvalExp e => trvar e 
                 |   A.FunctionCall {name, args} =>
                         let
                             fun getArgs [] = []
@@ -189,8 +218,42 @@ struct
                             fun pushArgs [] i = []
                                 | pushArgs (x::xs) i =
                                     T.MOVE (T.MEM (getPushLocation i), trexp x)::(pushArgs xs (i + 1))
-                            
-                            val curOffset = (List.length args) + 2
+                            fun pushLocals [] _ = []
+                                | pushLocals ((k, v)::xs) i =
+                                    let
+                                        val dest = getPushLocation i
+                                        val inst = (case v of
+                                            E.VarEntry {access, type_} =>
+                                                T.MOVE (dest, (F.getAccessExp access) (T.CONST 0))
+                                        |   E.FunEntry _ => T.EXP (T.CONST 0))
+                                    in
+                                        inst::(pushLocals xs (i + 1))
+                                    end
+
+                            fun restoreLocals [] _ = []
+                                | restoreLocals ((k, v)::xs) i =
+                                    let
+                                        val dest = getPushLocation i
+                                        val inst = (case v of
+                                            E.VarEntry {access as (F.InReg reg), type_} =>
+                                                T.MOVE (T.TEMP reg, dest)
+                                        |   _ => T.EXP (T.CONST 0))
+                                    in
+                                        inst::(restoreLocals xs (i + 1))
+                                    end
+                            fun getNumLocals [] = 0
+                                | getNumLocals ((k, v)::xs) =
+                                    let
+                                        val add = (case v of
+                                           E.VarEntry _ => 1
+                                         | E.FunEntry _ => 0)
+                                    in
+                                        add + (getNumLocals xs)
+                                    end
+                            val locals = Symbol.listItemsi venv
+                            val numArgs = List.length args
+                            val numLocals = getNumLocals locals
+                            val curOffset = 2 + numArgs + numLocals
                             val moveFP = T.MOVE (T.TEMP F.FP, T.BINOP (T.MINUS, T.TEMP F.SP, T.CONST F.ws))
                             val moveSP = T.MOVE (T.TEMP F.SP, T.BINOP (T.MINUS, T.TEMP F.SP, T.CONST (curOffset * F.ws)))
                             val resetFP = T.MOVE (T.TEMP F.FP, T.MEM (T.TEMP F.FP))
@@ -200,17 +263,18 @@ struct
                                 Tr.seq ([
                                         pushFP,
                                         pushRetAddr
-                                    ] @ pushArgs args 3 @ [
+                                    ] @ pushLocals locals 3
+                                      @ pushArgs args (numLocals + 3) @ [
                                         moveFP,
                                         moveSP,
                                         funcCall,
                                         T.LABEL returnLabel,
                                         resetSP,
                                         resetFP
-                                    ]), T.TEMP F.RV
+                                    ] @ restoreLocals locals 3), T.TEMP F.RV
                             )
                         end
-                |   A.MethodCall {object, name, args} => raise Unimplemented
+                |   A.MethodCall {object, name, args} => raise Unimplemented "Classes and methods"
                 |   A.Negate exp =>
                         let
                             val exp = trexp exp
@@ -219,6 +283,10 @@ struct
                         end
                 |   A.OpExp {left, oper, right} =>
                         let
+                            val t = Temp.newlabel ()
+                            val f = Temp.newlabel ()
+                            val s = Temp.newlabel ()
+                            val r = Temp.newtemp ()
                             val left = trexp left
                             val right = trexp right
                             val oper' = (case oper of
@@ -236,16 +304,49 @@ struct
                             |   A.Or => BinOp T.OR)
                         in
                             case oper' of
-                                BinOp oper => 
-                                    T.BINOP (oper, left, right)
+                                BinOp oper =>
+                                    (case oper of
+                                            T.AND => 
+                                            let
+                                                val stm = Tr.seq ([
+                                                            T.MOVE (T.TEMP r, T.CONST 1),
+                                                            T.CJUMP (T.EQ, left, T.CONST 1, s, f),
+                                                            T.LABEL s,
+                                                            T.CJUMP (T.EQ, right, T.CONST 1, t, f),
+                                                            T.LABEL f,
+                                                            T.MOVE (T.TEMP r, T.CONST 0),
+                                                            T.LABEL t
+                                                        ])
+                                            in
+                                                T.ESEQ (
+                                                    stm, 
+                                                    T.TEMP r
+                                                )
+                                            end
+                                        |   T.OR => 
+                                                let
+                                                    val stm = Tr.seq ([
+                                                                T.MOVE (T.TEMP r, T.CONST 1),
+                                                                T.CJUMP (T.EQ, left, T.CONST 1, t, s),
+                                                                T.LABEL s,
+                                                                T.CJUMP (T.EQ, right, T.CONST 1, t, f),
+                                                                T.LABEL f,
+                                                                T.MOVE (T.TEMP r, T.CONST 0),
+                                                                T.LABEL t
+                                                            ])
+                                                in
+                                                    T.ESEQ (
+                                                        stm, 
+                                                        T.TEMP r
+                                                    )
+                                                end
+                                        |   _   => T.BINOP (oper, left, right))
                             |   RelOp oper =>
                                     let
-                                        val t = Temp.newlabel ()
-                                        val f = Temp.newlabel ()
-                                        val stm = T.CJUMP (oper, left, right, t, f)
+                                        val exp = Tr.Cx (fn (a, b) => T.CJUMP (oper, left, right, a, b))
                                     in
-                                        Tr.unEx (Tr.Nx stm)
-                                    end    
+                                        Tr.unEx exp
+                                    end 
                         end
                 |   A.SeqExp exps => trexps exps
                 |   A.AssignExp {object, exp} =>
@@ -255,49 +356,25 @@ struct
                         in
                             Tr.unEx (Tr.Nx (T.MOVE (object, exp)))
                         end
-                |   A.IfElseExp {cond, succ, fail} =>
-                        let
-                            val t = Temp.newlabel ()
-                            val f = Temp.newlabel ()
-                            val finish = Temp.newlabel ()
-                            val result = Temp.newtemp ()
-                            val cond = trcep cond
-                            val succ = trexp succ
-                            val fail = 
-                                (case fail of
-                                    NONE => NONE
-                                |   SOME e => SOME (trexp e))
-                        in
-                            case fail of
-                                NONE =>
-                                    T.ESEQ (
-                                        Tr.seq ([
-                                            cond (t, finish),
-                                            T.LABEL t,
-                                            Tr.unNx (Tr.Ex succ),
-                                            T.LABEL finish
-                                        ]), T.CONST 0
-                                    )
-                            |   SOME fail =>
-                                    T.ESEQ (
-                                        Tr.seq([
-                                            cond (t, f),
-                                            T.LABEL t,
-                                            T.MOVE (T.TEMP result, succ),
-                                            T.JUMP (T.NAME finish, [finish]),
-                                            T.LABEL f,
-                                            T.MOVE (T.TEMP result, fail),
-                                            T.LABEL finish
-                                        ]), T.TEMP result
-                                    )
-                        end
+                |   A.IfElseExp (e as {cond, succ, fail}) =>
+                        (case cond of
+                            A.SeqExp exps =>
+                                let
+                                    val expsCount = List.length exps
+                                in
+                                    if expsCount = 0
+                                    then raise SyntaxError "If needs a condition"
+                                    else trcep e
+                                end
+                        |   _ => trcep e
+                            )
                 |   A.WhileExp {cond, body} => 
                         let
                             val test = Temp.newlabel ()
                             val finish = Temp.newlabel ()
                             val continue = Temp.newlabel ()
-                            val cond = trcep cond
-                            val body = trexp body
+                            val cond = Tr.unCx (Tr.Ex (trexp cond))
+                            val body = (curBreak := finish; trexp body)
                         in
                             T.ESEQ (
                                 Tr.seq ([
@@ -317,28 +394,33 @@ struct
                             val continue = Temp.newlabel ()
                             val test = Temp.newlabel ()
                             val init = trexp exp
-                            val cond = trcep exit_cond
+                            val exit_cond = trexp exit_cond
                             val vardec = A.VarDec {name=name, type_=NONE, init=exp}
                             val (venv', dec) = transDec (venv, curFrame) vardec
+                            val body = (curBreak := finish; transExp (venv', curFrame) body)
                         in
-                            let
-                                val body = transExp (venv', curFrame) body
-                            in
-                                T.ESEQ (
-                                    Tr.seq ([
-                                        T.MOVE (T.TEMP t, init),
-                                        T.LABEL test,
-                                        cond (continue, finish),
-                                        T.LABEL continue,
-                                        T.MOVE (T.TEMP t, T.BINOP (T.PLUS, T.TEMP t, T.CONST 1)),
-                                        Tr.unNx (Tr.Ex body),
-                                        T.JUMP (T.NAME test, [test]),
-                                        T.LABEL finish
-                                    ]), T.CONST 0
-                                )
-                            end
+                            T.ESEQ (
+                                Tr.seq ([
+                                    T.MOVE (T.TEMP t, init),
+                                    T.LABEL test,
+                                    T.CJUMP (T.LE, T.TEMP t, exit_cond, continue, finish),
+                                    T.LABEL continue,
+                                    T.MOVE (T.TEMP t, T.BINOP (T.PLUS, T.TEMP t, T.CONST 1)),
+                                    Tr.unNx (Tr.Ex body),
+                                    T.JUMP (T.NAME test, [test]),
+                                    T.LABEL finish
+                                ]), T.CONST 0
+                            )
                         end
-                |   A.BreakExp => raise Unimplemented
+                |   A.BreakExp =>
+                        if (Symbol.name (!curBreak)) = "NONE"
+                        then raise SyntaxError "Invalid break detected."
+                        else T.ESEQ (
+                            Tr.seq [
+                                T.JUMP (T.NAME (!curBreak), [!curBreak]),
+                                T.LABEL (Temp.newlabel ())
+                            ]
+                            , T.CONST 0)
                 |   A.LetExp {decs, body} =>
                         let
                             fun trdecs (venv, []) = (venv, [])

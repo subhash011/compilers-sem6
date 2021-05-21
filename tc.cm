@@ -8,6 +8,7 @@ Library
     structure Env
     structure Canon
     structure Semant
+    structure Translate
 is
     util/table.sml
     util/symbol.sml

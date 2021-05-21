@@ -7,7 +7,11 @@ sig
     val empty: 'a table
     val enter: 'a table * symbol * 'a -> 'a table
     val look: 'a table * symbol -> 'a option
-    val remove: 'a table * symbol -> 'a table * 'a 
+    val remove: 'a table * symbol -> 'a table * 'a
+    val numItems: 'a table -> int
+    val listKeys: 'a table -> int list
+    val listItems: 'a table -> 'a list
+    val listItemsi: 'a table -> (int * 'a) list
 end
 
 structure Symbol :> SYMBOL =
@@ -45,4 +49,8 @@ struct
   val enter = Table.enter
   val look = Table.look
   val remove = Table.remove
+  val numItems = Table.numItems
+  val listKeys = Table.listKeys
+  val listItems = Table.listItems
+  val listItemsi = Table.listItemsi
 end
