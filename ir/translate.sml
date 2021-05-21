@@ -168,7 +168,6 @@ struct
                             val body = transExp (
                                 addArgsToEnv (venv', 
                                     merge args (F.args newFrame)
-                                    handle SyntaxError s => (print (s); OS.Process.exit OS.Process.success)
                                 ), 
                                 curFrame
                                 ) body
@@ -195,11 +194,12 @@ struct
             (case var of
                 A.SimpleVar id =>
                     (case S.look (venv, id) of
-                        NONE => raise Undefined (Symbol.name id)
+                        NONE => raise Undefined ("variable declaration for \"" ^ (Symbol.name id) ^ "\" not found.")
                     |   SOME enventry =>
                             (case enventry of
                                 E.VarEntry {access, type_} => (F.getAccessExp access) (T.TEMP F.FP)
-                            |   _ => raise Undefined (Symbol.name id))
+                            |   _ => raise Undefined ("variable declaration for \"" ^ (Symbol.name id) ^ "\" not found,\
+                                                        \ did you mean to call a function ?"))
                     )
             |   _ => raise Unimplemented "Arrays and records")
             and trcep {cond, succ, fail} =
@@ -250,7 +250,7 @@ struct
                 |   A.RecordExp _ => raise Unimplemented "Records"
                 |   A.New _ => raise Unimplemented "Objects"
                 |   A.LvalExp e => trvar e 
-                |   A.FunctionCall {name, args} =>
+                |   A.FunctionCall {name, args as funargs} =>
                         let
                             fun getArgs [] = []
                                 | getArgs (x::xs) =
@@ -258,13 +258,15 @@ struct
 
                             val funcCall = (case Symbol.look (venv, name) of
                                                 SOME (E.FunEntry {frame, label, args, ret}) => 
-                                                    T.EXP (T.CALL (T.NAME label, getArgs (F.args frame)))
-                                                |   _  => raise Undefined "function"
+                                                    if (List.length funargs) = (List.length args)
+                                                    then T.EXP (T.CALL (T.NAME label, getArgs (F.args frame)))
+                                                    else raise SyntaxError ("Invalid number of arguments for function \"" ^ (Symbol.name name) ^ "\"")
+                                                |   _  => raise Undefined ("function declaration for \"" ^ (Symbol.name name) ^ "\" not found.")
                                             )
                             fun getFunctionFrame () = (case Symbol.look (venv, name) of
                                                         SOME (E.FunEntry {frame, label, args, ret}) => 
                                                             frame
-                                                        |   _  => raise Undefined "function"
+                                                        |   _  => raise Undefined ("function declaration for \"" ^ (Symbol.name name) ^ "\" not found.")
                                                     )
 
                             fun getPushLocation curOffset =
@@ -471,7 +473,7 @@ struct
                         end
                 |   A.BreakExp =>
                         if (Symbol.name (!curBreak)) = "NONE"
-                        then raise SyntaxError "Invalid break detected."
+                        then raise SyntaxError "Invalid break detected, is it inside a loop ?"
                         else T.ESEQ (
                             seq [
                                 T.JUMP (T.NAME (!curBreak), [!curBreak]),
@@ -512,7 +514,9 @@ struct
                 args = []
             }
             val exp = transTiger (venv, curFrame, ast)
-                        handle Unimplemented s => (printErrorString ("Unimplemented expression: " ^ s))
+                        handle Unimplemented s => (printErrorString ("Unimplemented expression: " ^ s ^ "\n"))
+                            | SyntaxError s => (printErrorString ("Syntax error: " ^ s ^ "\n"))
+                            | Undefined s => (printErrorString ("Undefined: " ^ s ^ "\n"))
         in
             T.EXP exp
         end

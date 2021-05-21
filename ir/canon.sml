@@ -238,7 +238,13 @@ struct
                     | _ => raise CanonisationError)
                 | pickBlock (nil, table) = nil
             val table = addBlocksToTable blocks
+            val trace = pickBlock (blocks, table) @ [T.LABEL done]
+            fun removeUnwanted [] = []
+                | removeUnwanted (x::xs) =
+                    (case x of
+                        T.EXP _ => removeUnwanted xs
+                    |   _ => x::(removeUnwanted xs))
         in
-            pickBlock (blocks, table) @ [T.LABEL done]
+            removeUnwanted trace
         end
 end

@@ -23,8 +23,8 @@ is
     ir/temp.sml
     ir/frame.sml
     ir/printtree.sml
-    ir/translate.sml
     ir/env.sml
+    ir/translate.sml
     ir/canon.sml
     tc.cm.sml
     $/basis.cm
