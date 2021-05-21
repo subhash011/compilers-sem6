@@ -89,7 +89,7 @@ struct
     fun printBasicBlocs [] = ()
         | printBasicBlocs (x::xs) = (printCanon x; printBasicBlocs xs)
 
-    fun getIR program = Semant.transProg program
+    fun getIR program = Translate.transProg program
 
     fun getCanon program =
         let
@@ -98,40 +98,10 @@ struct
             val basicBlocks = Canon.basicBlocks linearised
             val traceSchedule = Canon.traceSchedule basicBlocks
         in
-            (* basicBlocks *)
-            (* linearised *)
             traceSchedule
         end
 
-    fun getIRCM () = 
-        let
-            val (program,_) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ());
-        in
-            printIR (getIR program)
-        end
-    
-    fun getCanonCM () = 
-        let
-            val (program,_) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ());
-            (* val (basicBlocks, label) = getCanon program *)
-        in
-            (* (printBasicBlocs basicBlocks; print (Symbol.name label)) *)
-            printCanon (getCanon program)
-        end
-
-    fun CM s =
-        case s of
-            "can" => getCanonCM ()
-            | "ir" => getIRCM ()
-            | "ast" =>
-                let
-                    val (program, _) = TigerParser.parse (0, makeTigerLexer TextIO.stdIn, print_error, ())
-                in
-                    PrintAST.print program
-                end
-            | _ => raise InvalidArgument
-
-    (* val (program,_) = TigerParser.parse (0, thisLexer, print_error, ());
+    val (program,_) = TigerParser.parse (0, thisLexer, print_error, ());
 
     val _   =   if !fmt 
             then (PP.compile program (!toCol); ()) 
@@ -141,5 +111,5 @@ struct
             then printIR (getIR program)
             else if !can
             then printCanon (getCanon program)
-            else () *)
+            else ()
 end

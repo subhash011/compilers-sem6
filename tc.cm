@@ -7,7 +7,6 @@ Library
     structure Frame
     structure Env
     structure Canon
-    structure Semant
     structure Translate
 is
     util/table.sml
@@ -26,9 +25,8 @@ is
     ir/printtree.sml
     ir/translate.sml
     ir/env.sml
-    ir/semant.sml
     ir/canon.sml
-    tc.sml
+    tc.cm.sml
     $/basis.cm
     $/ml-yacc-lib.cm
     $/smlnj-lib.cm
