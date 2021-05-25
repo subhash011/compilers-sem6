@@ -6,8 +6,8 @@ Lab 6:  8629ba79843725ad7fd00380ac779349eaaf3f87
         Date: 21-05-2021  
         Command:   
             1. Use `make` to generate the binary `tc`  
-            2. `./tc --can file` - To get canonized IR  
-            3. `./tc --ir file` - To get the IR  
+            2. `./tc --can file` or `make && ./tc --can file` - To get canonized IR  
+            3. `./tc --ir file`  or `make && ./tc --ir file` - To get the IR (for lab5)
 ```
 ```
 Lab 5:  5b3c2fd0b76ae55b2baaacf0bac56fa103d14425  
@@ -15,9 +15,9 @@ Lab 5:  5b3c2fd0b76ae55b2baaacf0bac56fa103d14425
         Command:  
             1. Use `make` to generate the binary `tc`  
             2. `./tc --help` - Help regarding command line args.  
-            3. `./tc --pp` - Pretty print Tiger code.  
-            4. `./tc --fmt` - Pretty print without syntax highlighting Tiger code.  
-            5. `./tc --ast` - Print AST of Tiger code.  
+            3. Since this lab could not be tested without lab6 code, there is no flag to print IR.
+            4. But the canon.sml was up to date during this commit and only some optimizations were
+               added to the traceSchedule after this commit.
 ```
 ```
 Lab 4:  db9ec061dff475798f312874df9d4c3c08612519
