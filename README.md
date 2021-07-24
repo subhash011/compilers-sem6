@@ -2,7 +2,9 @@
 
 **Author**  - Subhash S (111801042)
 
-This repository is a minimal implementation following the book `Modern compiler implementation in ML` by Andrew W. Appel.
+This repository is a minimal implementation following the book `Modern compiler implementation in ML` by Andrew W. Appel.  
+For specifications of the language, visit the [website](https://www.lrde.epita.fr/~tiger/tiger.html).  
+This implementation does not support nested functions and object oriented programming techniques.
 
 ### Compiler status
 
